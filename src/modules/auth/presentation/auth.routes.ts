@@ -1,22 +1,25 @@
 import { Router } from "express";
-import type { AppContainer } from "../../../container.js";
-import { validateRequest } from "../../../shared/validation/validate-request.js";
+import type { BoPhuThuocUngDung } from "../../../container.js";
+import { xacThucYeuCau } from "../../../shared/validation/validate-request.js";
 import {
-  AuthController,
-  googleLoginSchema,
-  loginSchema,
-  logoutSchema,
-  refreshTokenSchema
+  BoDieuKhienXacThuc,
+  luocDoDangNhapGoogle,
+  luocDoDangNhap,
+  luocDoDangXuat,
+  luocDoLamMoiToken
 } from "./auth.controller.js";
 
-export const buildAuthRoutes = (container: AppContainer) => {
+export const xayDungTuyenDuongXacThuc = (boPhuThuoc: BoPhuThuocUngDung) => {
   const router = Router();
-  const controller = new AuthController(container);
+  const controller = new BoDieuKhienXacThuc(boPhuThuoc);
 
-  router.post("/login", validateRequest(loginSchema), controller.login);
-  router.post("/google", validateRequest(googleLoginSchema), controller.loginWithGoogle);
-  router.post("/refresh", validateRequest(refreshTokenSchema), controller.refresh);
-  router.post("/logout", validateRequest(logoutSchema), controller.logout);
+  router.post("/login", xacThucYeuCau(luocDoDangNhap), controller.dangNhap);
+  router.post("/google", xacThucYeuCau(luocDoDangNhapGoogle), controller.dangNhapGoogle);
+  router.post("/refresh", xacThucYeuCau(luocDoLamMoiToken), controller.lamMoiToken);
+  router.post("/logout", xacThucYeuCau(luocDoDangXuat), controller.dangXuat);
 
   return router;
 };
+
+
+

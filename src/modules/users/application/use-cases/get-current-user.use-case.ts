@@ -1,26 +1,29 @@
-import { AppError } from "../../../../shared/errors/app-error.js";
-import type { PublicUser } from "../../domain/user.js";
-import { toPublicUser } from "../../domain/user.js";
-import type { UserRepository } from "../ports/user.repository.js";
+import { LoiUngDung } from "../../../../shared/errors/app-error.js";
+import type { NguoiDungCongKhai } from "../../domain/user.js";
+import { anhXaNguoiDungCongKhai } from "../../domain/user.js";
+import type { KhoNguoiDung } from "../ports/user.repository.js";
 
-type Dependencies = {
-  userRepository: UserRepository;
+type PhuThuoc = {
+  khoNguoiDung: KhoNguoiDung;
 };
 
-export class GetCurrentUserUseCase {
-  constructor(private readonly deps: Dependencies) {}
+export class XuLyLayNguoiDungHienTai {
+  constructor(private readonly deps: PhuThuoc) {}
 
-  async execute(userId: string): Promise<PublicUser> {
-    const user = await this.deps.userRepository.findById(userId);
+  async thucThi(userId: string): Promise<NguoiDungCongKhai> {
+    const user = await this.deps.khoNguoiDung.timTheoMa(userId);
 
     if (!user) {
-      throw AppError.notFound("Không tìm thấy người dùng");
+      throw LoiUngDung.khongTimThay("Không tìm thấy người dùng");
     }
 
     if (user.status === "BI_KHOA") {
-      throw AppError.locked("Tài khoản đã bị khóa");
+      throw LoiUngDung.biKhoa("Tài khoản đã bị khóa");
     }
 
-    return toPublicUser(user);
+    return anhXaNguoiDungCongKhai(user);
   }
 }
+
+
+

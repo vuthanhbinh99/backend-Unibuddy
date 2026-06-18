@@ -1,14 +1,17 @@
 import { Router } from "express";
-import type { AppContainer } from "../../../container.js";
-import { AuthMiddleware } from "../../auth/presentation/auth.middleware.js";
-import { UserController } from "./user.controller.js";
+import type { BoPhuThuocUngDung } from "../../../container.js";
+import { BoTrungGianXacThuc } from "../../auth/presentation/auth.middleware.js";
+import { BoDieuKhienNguoiDung } from "./user.controller.js";
 
-export const buildUserRoutes = (container: AppContainer) => {
+export const xayDungTuyenDuongNguoiDung = (boPhuThuoc: BoPhuThuocUngDung) => {
   const router = Router();
-  const controller = new UserController(container);
-  const auth = new AuthMiddleware(container);
+  const controller = new BoDieuKhienNguoiDung(boPhuThuoc);
+  const auth = new BoTrungGianXacThuc(boPhuThuoc);
 
-  router.get("/me", auth.requireAuth, controller.me);
+  router.get("/me", auth.yeuCauXacThuc, controller.thongTinCuaToi);
 
   return router;
 };
+
+
+

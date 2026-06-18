@@ -1,19 +1,22 @@
 import type { Request, Response } from "express";
-import type { AppContainer } from "../../container.js";
-import { asyncHandler } from "../../shared/http/async-handler.js";
-import { ok } from "../../shared/http/api-response.js";
+import type { BoPhuThuocUngDung } from "../../container.js";
+import { xuLyBatDongBo } from "../../shared/http/async-handler.js";
+import { thanhCong } from "../../shared/http/api-response.js";
 
-export class HealthController {
-  constructor(private readonly container: AppContainer) {}
+export class BoDieuKhienSucKhoe {
+  constructor(private readonly boPhuThuoc: BoPhuThuocUngDung) {}
 
-  show = asyncHandler(async (_req: Request, res: Response) => {
-    await this.container.db.query("SELECT 1");
+  hienThi = xuLyBatDongBo(async (_req: Request, res: Response) => {
+    await this.boPhuThuoc.coSoDuLieu.truyVan("SELECT 1");
 
     res.status(200).json(
-      ok({
+      thanhCong({
         status: "ok",
         database: "reachable"
       })
     );
   });
 }
+
+
+

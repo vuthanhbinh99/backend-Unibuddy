@@ -1,6 +1,9 @@
-import type { QueryExecutor } from "../../../../shared/database/database.js";
-import type { AuditLogEntry } from "../../domain/audit-log-entry.js";
+import type { BoThucThiTruyVan } from "../../../../shared/database/database.js";
+import type { BanGhiNhatKyHeThong } from "../../domain/audit-log-entry.js";
 
-export interface AuditLogRepository {
-  create(entry: AuditLogEntry, executor?: QueryExecutor): Promise<void>;
+export interface KhoNhatKyHeThong {
+  tao(entry: BanGhiNhatKyHeThong, boThucThi?: BoThucThiTruyVan): Promise<void>;
 }
+
+
+

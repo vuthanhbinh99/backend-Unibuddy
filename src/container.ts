@@ -1,89 +1,150 @@
-import { BcryptPasswordHasher } from "./modules/auth/infrastructure/bcrypt-password-hasher.js";
-import { GoogleTokenInfoVerifier } from "./modules/auth/infrastructure/google-token-info.verifier.js";
-import { JwtTokenService } from "./modules/auth/infrastructure/jwt-token.service.js";
-import { PostgresSessionRepository } from "./modules/auth/infrastructure/postgres-session.repository.js";
-import { GoogleLoginUseCase } from "./modules/auth/application/use-cases/google-login.use-case.js";
-import { LoginUseCase } from "./modules/auth/application/use-cases/login.use-case.js";
-import { LogoutUseCase } from "./modules/auth/application/use-cases/logout.use-case.js";
-import { RefreshTokenUseCase } from "./modules/auth/application/use-cases/refresh-token.use-case.js";
-import { PostgresAuditLogRepository } from "./modules/audit-logs/infrastructure/postgres-audit-log.repository.js";
-import { GetCurrentUserUseCase } from "./modules/users/application/use-cases/get-current-user.use-case.js";
-import { PostgresUserRepository } from "./modules/users/infrastructure/postgres-user.repository.js";
-import { config } from "./shared/config/env.js";
-import { PostgresConnectionPool } from "./shared/database/postgres.js";
-import { PostgresTransactionManager } from "./shared/database/transaction.js";
+import { BoMaHoaMatKhauBcrypt } from "./modules/auth/infrastructure/bcrypt-password-hasher.js";
+import { BoKiemTraDanhTinhGoogleQuaAPI } from "./modules/auth/infrastructure/google-token-info.verifier.js";
+import { DichVuTokenJwt } from "./modules/auth/infrastructure/jwt-token.service.js";
+import { KhoPhienDangNhapPostgres } from "./modules/auth/infrastructure/postgres-session.repository.js";
+import { XuLyDangNhapGoogle } from "./modules/auth/application/use-cases/google-login.use-case.js";
+import { XuLyDangNhap } from "./modules/auth/application/use-cases/login.use-case.js";
+import { XuLyDangXuat } from "./modules/auth/application/use-cases/logout.use-case.js";
+import { XuLyLamMoiToken } from "./modules/auth/application/use-cases/refresh-token.use-case.js";
+import { KhoNhatKyHeThongPostgres } from "./modules/audit-logs/infrastructure/postgres-audit-log.repository.js";
+import { XuLyLayNguoiDungHienTai } from "./modules/users/application/use-cases/get-current-user.use-case.js";
+import { KhoNguoiDungPostgres } from "./modules/users/infrastructure/postgres-user.repository.js";
+import { KhoTruongHocPostgres } from "./modules/schools/infrastructure/postgres-school.repository.js";
+import { XuLyDanhSachTruongHoc } from "./modules/schools/application/use-cases/list-schools.use-case.js";
+import { XuLyLayChiTietTruongHoc } from "./modules/schools/application/use-cases/get-school.use-case.js";
+import { XuLyTaoTruongHoc } from "./modules/schools/application/use-cases/create-school.use-case.js";
+import { XuLyCapNhatTruongHoc } from "./modules/schools/application/use-cases/update-school.use-case.js";
+import { XuLyXoaTruongHoc } from "./modules/schools/application/use-cases/delete-school.use-case.js";
+import { KhoHocThuatTruongHocPostgres } from "./modules/academic-rules/infrastructure/postgres-academic-rules.repository.js";
+import { XuLyLayCauHinhHocThuatTruongHoc } from "./modules/academic-rules/application/use-cases/get-academic-rules.use-case.js";
+import { XuLyCapNhatThangDiemTruongHoc } from "./modules/academic-rules/application/use-cases/update-score-scale.use-case.js";
+import { XuLyCapNhatQuyCheHocLucTruongHoc } from "./modules/academic-rules/application/use-cases/update-academic-standing.use-case.js";
+import { cauHinh } from "./shared/config/env.js";
+import { KetNoiPostgres } from "./shared/database/postgres.js";
+import { BoQuanLyGiaoDichPostgres } from "./shared/database/transaction.js";
 
-let container: AppContainer | null = null;
+let boPhuThuoc: BoPhuThuocUngDung | null = null;
 
-export type AppContainer = ReturnType<typeof createContainer>;
+export type BoPhuThuocUngDung = ReturnType<typeof taoBoPhuThuoc>;
 
-const createContainer = () => {
-  const db = new PostgresConnectionPool();
-  const transactions = new PostgresTransactionManager(db);
+const taoBoPhuThuoc = () => {
+  const coSoDuLieu = new KetNoiPostgres();
+  const giaoDich = new BoQuanLyGiaoDichPostgres(coSoDuLieu);
 
-  const userRepository = new PostgresUserRepository(db);
-  const sessionRepository = new PostgresSessionRepository(db);
-  const auditLogRepository = new PostgresAuditLogRepository(db);
+  const khoNguoiDung = new KhoNguoiDungPostgres(coSoDuLieu);
+  const khoPhienDangNhap = new KhoPhienDangNhapPostgres(coSoDuLieu);
+  const khoNhatKyHeThong = new KhoNhatKyHeThongPostgres(coSoDuLieu);
+  const khoTruongHoc = new KhoTruongHocPostgres(coSoDuLieu);
+  const khoHocThuatTruongHoc = new KhoHocThuatTruongHocPostgres(coSoDuLieu);
 
-  const passwordHasher = new BcryptPasswordHasher();
-  const tokenService = new JwtTokenService();
-  const googleIdentityVerifier = new GoogleTokenInfoVerifier(config.auth.googleClientIds);
+  const boMaHoaMatKhau = new BoMaHoaMatKhauBcrypt();
+  const dichVuToken = new DichVuTokenJwt();
+  const boKiemTraDanhTinhGoogle = new BoKiemTraDanhTinhGoogleQuaAPI(cauHinh.auth.googleClientIds);
 
-  const loginUseCase = new LoginUseCase({
-    userRepository,
-    sessionRepository,
-    auditLogRepository,
-    passwordHasher,
-    tokenService,
-    transactions
+  const xuLyDangNhap = new XuLyDangNhap({
+    khoNguoiDung,
+    khoPhienDangNhap,
+    khoNhatKyHeThong,
+    boMaHoaMatKhau,
+    dichVuToken,
+    giaoDich
   });
 
-  const googleLoginUseCase = new GoogleLoginUseCase({
-    userRepository,
-    sessionRepository,
-    auditLogRepository,
-    passwordHasher,
-    tokenService,
-    transactions,
-    googleIdentityVerifier,
-    defaultStudentRoleCode: config.auth.defaultStudentRoleCode
+  const xuLyDangNhapGoogle = new XuLyDangNhapGoogle({
+    khoNguoiDung,
+    khoPhienDangNhap,
+    khoNhatKyHeThong,
+    boMaHoaMatKhau,
+    dichVuToken,
+    giaoDich,
+    boKiemTraDanhTinhGoogle,
+    maCodeVaiTroSinhVienMacDinh: cauHinh.auth.maCodeVaiTroSinhVienMacDinh
   });
 
-  const refreshTokenUseCase = new RefreshTokenUseCase({
-    userRepository,
-    sessionRepository,
-    auditLogRepository,
-    tokenService,
-    transactions
+  const xuLyLamMoiToken = new XuLyLamMoiToken({
+    khoNguoiDung,
+    khoPhienDangNhap,
+    khoNhatKyHeThong,
+    dichVuToken,
+    giaoDich
   });
 
-  const logoutUseCase = new LogoutUseCase({
-    sessionRepository,
-    auditLogRepository,
-    tokenService,
-    transactions
+  const xuLyDangXuat = new XuLyDangXuat({
+    khoPhienDangNhap,
+    khoNhatKyHeThong,
+    dichVuToken,
+    giaoDich
   });
 
-  const getCurrentUserUseCase = new GetCurrentUserUseCase({ userRepository });
+  const xuLyLayNguoiDungHienTai = new XuLyLayNguoiDungHienTai({ khoNguoiDung });
+  const xuLyDanhSachTruongHoc = new XuLyDanhSachTruongHoc({ khoTruongHoc });
+  const xuLyLayChiTietTruongHoc = new XuLyLayChiTietTruongHoc({ khoTruongHoc });
+  const xuLyTaoTruongHoc = new XuLyTaoTruongHoc({
+    khoTruongHoc,
+    khoNhatKyHeThong,
+    giaoDich
+  });
+  const xuLyCapNhatTruongHoc = new XuLyCapNhatTruongHoc({
+    khoTruongHoc,
+    khoNhatKyHeThong,
+    giaoDich
+  });
+  const xuLyXoaTruongHoc = new XuLyXoaTruongHoc({
+    khoTruongHoc,
+    khoNhatKyHeThong,
+    giaoDich
+  });
+
+  const xuLyLayCauHinhHocThuatTruongHoc = new XuLyLayCauHinhHocThuatTruongHoc({
+    khoTruongHoc,
+    khoHocThuatTruongHoc
+  });
+
+  const xuLyCapNhatThangDiemTruongHoc = new XuLyCapNhatThangDiemTruongHoc({
+    khoTruongHoc,
+    khoHocThuatTruongHoc,
+    khoNhatKyHeThong,
+    giaoDich
+  });
+
+  const xuLyCapNhatQuyCheHocLucTruongHoc = new XuLyCapNhatQuyCheHocLucTruongHoc({
+    khoTruongHoc,
+    khoHocThuatTruongHoc,
+    khoNhatKyHeThong,
+    giaoDich
+  });
 
   return {
-    db,
-    transactions,
-    userRepository,
-    sessionRepository,
-    auditLogRepository,
-    passwordHasher,
-    tokenService,
-    googleIdentityVerifier,
-    loginUseCase,
-    googleLoginUseCase,
-    refreshTokenUseCase,
-    logoutUseCase,
-    getCurrentUserUseCase
+    coSoDuLieu,
+    giaoDich,
+    khoNguoiDung,
+    khoPhienDangNhap,
+    khoNhatKyHeThong,
+    khoTruongHoc,
+    khoHocThuatTruongHoc,
+    boMaHoaMatKhau,
+    dichVuToken,
+    boKiemTraDanhTinhGoogle,
+    xuLyDangNhap,
+    xuLyDangNhapGoogle,
+    xuLyLamMoiToken,
+    xuLyDangXuat,
+    xuLyLayNguoiDungHienTai,
+    xuLyDanhSachTruongHoc,
+    xuLyLayChiTietTruongHoc,
+    xuLyTaoTruongHoc,
+    xuLyCapNhatTruongHoc,
+    xuLyXoaTruongHoc,
+    xuLyLayCauHinhHocThuatTruongHoc,
+    xuLyCapNhatThangDiemTruongHoc,
+    xuLyCapNhatQuyCheHocLucTruongHoc
   };
 };
 
-export const buildContainer = () => {
-  container ??= createContainer();
-  return container;
+export const xayDungBoPhuThuoc = () => {
+  boPhuThuoc ??= taoBoPhuThuoc();
+  return boPhuThuoc;
 };
+
+
+

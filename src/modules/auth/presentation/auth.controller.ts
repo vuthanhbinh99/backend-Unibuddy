@@ -1,10 +1,10 @@
 import type { Request, Response } from "express";
 import { z } from "zod";
-import type { AppContainer } from "../../../container.js";
-import { asyncHandler } from "../../../shared/http/async-handler.js";
-import { created, ok } from "../../../shared/http/api-response.js";
+import type { BoPhuThuocUngDung } from "../../../container.js";
+import { xuLyBatDongBo } from "../../../shared/http/async-handler.js";
+import { daTao, thanhCong } from "../../../shared/http/api-response.js";
 
-export const loginSchema = z.object({
+export const luocDoDangNhap = z.object({
   body: z.object({
     email: z.string().email(),
     password: z.string().min(1),
@@ -13,7 +13,7 @@ export const loginSchema = z.object({
   })
 });
 
-export const googleLoginSchema = z.object({
+export const luocDoDangNhapGoogle = z.object({
   body: z.object({
     idToken: z.string().min(1),
     fcmToken: z.string().min(1).optional(),
@@ -21,7 +21,7 @@ export const googleLoginSchema = z.object({
   })
 });
 
-export const refreshTokenSchema = z.object({
+export const luocDoLamMoiToken = z.object({
   body: z.object({
     refreshToken: z.string().min(1),
     fcmToken: z.string().min(1).optional(),
@@ -29,24 +29,24 @@ export const refreshTokenSchema = z.object({
   })
 });
 
-export const logoutSchema = z.object({
+export const luocDoDangXuat = z.object({
   body: z.object({
     refreshToken: z.string().min(1)
   })
 });
 
-type LoginBody = z.infer<typeof loginSchema>["body"];
-type GoogleLoginBody = z.infer<typeof googleLoginSchema>["body"];
-type RefreshTokenBody = z.infer<typeof refreshTokenSchema>["body"];
-type LogoutBody = z.infer<typeof logoutSchema>["body"];
+type DuLieuDangNhap = z.infer<typeof luocDoDangNhap>["body"];
+type DuLieuDangNhapGoogle = z.infer<typeof luocDoDangNhapGoogle>["body"];
+type DuLieuLamMoiToken = z.infer<typeof luocDoLamMoiToken>["body"];
+type DuLieuDangXuat = z.infer<typeof luocDoDangXuat>["body"];
 
-export class AuthController {
-  constructor(private readonly container: AppContainer) {}
+export class BoDieuKhienXacThuc {
+  constructor(private readonly boPhuThuoc: BoPhuThuocUngDung) {}
 
-  login = asyncHandler(async (req: Request, res: Response) => {
-    const body = (req.validated as { body: LoginBody }).body;
+  dangNhap = xuLyBatDongBo(async (req: Request, res: Response) => {
+    const body = (req.duLieuDaXacThuc as { body: DuLieuDangNhap }).body;
 
-    const result = await this.container.loginUseCase.execute({
+    const ketQua = await this.boPhuThuoc.xuLyDangNhap.thucThi({
       email: body.email,
       password: body.password,
       device: {
@@ -57,13 +57,13 @@ export class AuthController {
       }
     });
 
-    res.status(200).json(ok(result));
+    res.status(200).json(thanhCong(ketQua));
   });
 
-  loginWithGoogle = asyncHandler(async (req: Request, res: Response) => {
-    const body = (req.validated as { body: GoogleLoginBody }).body;
+  dangNhapGoogle = xuLyBatDongBo(async (req: Request, res: Response) => {
+    const body = (req.duLieuDaXacThuc as { body: DuLieuDangNhapGoogle }).body;
 
-    const result = await this.container.googleLoginUseCase.execute({
+    const ketQua = await this.boPhuThuoc.xuLyDangNhapGoogle.thucThi({
       idToken: body.idToken,
       device: {
         fcmToken: body.fcmToken ?? null,
@@ -73,13 +73,13 @@ export class AuthController {
       }
     });
 
-    res.status(200).json(ok(result));
+    res.status(200).json(thanhCong(ketQua));
   });
 
-  refresh = asyncHandler(async (req: Request, res: Response) => {
-    const body = (req.validated as { body: RefreshTokenBody }).body;
+  lamMoiToken = xuLyBatDongBo(async (req: Request, res: Response) => {
+    const body = (req.duLieuDaXacThuc as { body: DuLieuLamMoiToken }).body;
 
-    const result = await this.container.refreshTokenUseCase.execute({
+    const ketQua = await this.boPhuThuoc.xuLyLamMoiToken.thucThi({
       refreshToken: body.refreshToken,
       device: {
         fcmToken: body.fcmToken ?? null,
@@ -89,17 +89,20 @@ export class AuthController {
       }
     });
 
-    res.status(201).json(created(result));
+    res.status(201).json(daTao(ketQua));
   });
 
-  logout = asyncHandler(async (req: Request, res: Response) => {
-    const body = (req.validated as { body: LogoutBody }).body;
+  dangXuat = xuLyBatDongBo(async (req: Request, res: Response) => {
+    const body = (req.duLieuDaXacThuc as { body: DuLieuDangXuat }).body;
 
-    await this.container.logoutUseCase.execute({
+    await this.boPhuThuoc.xuLyDangXuat.thucThi({
       refreshToken: body.refreshToken,
       actorId: req.user?.id ?? null
     });
 
-    res.status(200).json(ok({ loggedOut: true }));
+    res.status(200).json(thanhCong({ loggedOut: true }));
   });
 }
+
+
+

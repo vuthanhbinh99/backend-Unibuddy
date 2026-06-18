@@ -1,11 +1,14 @@
 import type { NextFunction, Request, Response } from "express";
 import { randomUUID } from "node:crypto";
 
-export const requestContext = (req: Request, res: Response, next: NextFunction) => {
-  const requestId = req.header("x-request-id") ?? randomUUID();
+export const taoBoiCanhYeuCau = (req: Request, res: Response, next: NextFunction) => {
+  const maYeuCau = req.header("x-request-id") ?? randomUUID();
 
-  req.requestId = requestId;
-  res.setHeader("x-request-id", requestId);
+  req.maYeuCau = maYeuCau;
+  res.setHeader("x-request-id", maYeuCau);
 
   next();
 };
+
+
+

@@ -1,0 +1,721 @@
+openapi: 3.0.3
+info:
+  title: UniBuddy Backend API
+  version: 0.1.0
+  description: OpenAPI specification for the current UniBuddy backend.
+servers:
+  - url: http://localhost:3000/api/v1
+    description: Local development
+security:
+  - bearerAuth: []
+paths:
+  /health:
+    get:
+      summary: Health check
+      tags: [Health]
+      security: []
+      responses:
+        '200':
+          description: Service status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+  /auth/login:
+    post:
+      summary: Login with email and password
+      tags: [Auth]
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Login success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '423':
+          $ref: '#/components/responses/AccountLockedError'
+  /auth/google:
+    post:
+      summary: Login with Google ID token
+      tags: [Auth]
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GoogleLoginRequest'
+      responses:
+        '200':
+          description: Login success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '423':
+          $ref: '#/components/responses/AccountLockedError'
+  /auth/refresh:
+    post:
+      summary: Refresh access token
+      tags: [Auth]
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RefreshTokenRequest'
+      responses:
+        '201':
+          description: Token refreshed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RefreshTokenResponse'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '423':
+          $ref: '#/components/responses/AccountLockedError'
+  /auth/logout:
+    post:
+      summary: Logout current session
+      tags: [Auth]
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LogoutRequest'
+      responses:
+        '200':
+          description: Logged out
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoggedOutResponse'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+  /users/me:
+    get:
+      summary: Current user profile
+      tags: [Users]
+      responses:
+        '200':
+          description: Public user profile
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+  /admin/schools:
+    get:
+      summary: List schools
+      tags: [Admin Schools]
+      responses:
+        '200':
+          description: School list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SchoolListResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+    post:
+      summary: Create school
+      tags: [Admin Schools]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateSchoolRequest'
+      responses:
+        '201':
+          description: School created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SchoolResponse'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '409':
+          $ref: '#/components/responses/ConflictError'
+  /admin/schools/{maTruongCode}:
+    get:
+      summary: Get school detail
+      tags: [Admin Schools]
+      parameters:
+        - $ref: '#/components/parameters/MaTruongCode'
+      responses:
+        '200':
+          description: School detail
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SchoolResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+    put:
+      summary: Update school name
+      tags: [Admin Schools]
+      parameters:
+        - $ref: '#/components/parameters/MaTruongCode'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateSchoolRequest'
+      responses:
+        '200':
+          description: School updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SchoolResponse'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+    delete:
+      summary: Delete school
+      tags: [Admin Schools]
+      parameters:
+        - $ref: '#/components/parameters/MaTruongCode'
+      responses:
+        '200':
+          description: School deleted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SchoolDeleteResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '409':
+          $ref: '#/components/responses/ConflictError'
+  /admin/schools/{maTruongCode}/academic-rules:
+    get:
+      summary: Get academic rules configuration
+      tags: [Academic Rules]
+      parameters:
+        - $ref: '#/components/parameters/MaTruongCode'
+      responses:
+        '200':
+          description: Current configuration
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AcademicRulesResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+  /admin/schools/{maTruongCode}/academic-rules/score-scale:
+    put:
+      summary: Replace score scale tiers
+      tags: [Academic Rules]
+      parameters:
+        - $ref: '#/components/parameters/MaTruongCode'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateScoreScaleRequest'
+      responses:
+        '200':
+          description: Score scale updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AcademicRulesResponse'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '409':
+          $ref: '#/components/responses/ConflictError'
+  /admin/schools/{maTruongCode}/academic-rules/academic-standing:
+    put:
+      summary: Replace academic standing rules
+      tags: [Academic Rules]
+      parameters:
+        - $ref: '#/components/parameters/MaTruongCode'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateAcademicStandingRequest'
+      responses:
+        '200':
+          description: Academic standing updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AcademicRulesResponse'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '409':
+          $ref: '#/components/responses/ConflictError'
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  parameters:
+    MaTruongCode:
+      name: maTruongCode
+      in: path
+      required: true
+      schema:
+        type: string
+      description: School code
+  responses:
+    ValidationError:
+      description: Invalid request data
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiErrorResponse'
+          example:
+            success: false
+            error:
+              code: VALIDATION_ERROR
+              message: Invalid request data
+              details:
+                - path: body.email
+                  message: Invalid email address
+    UnauthorizedError:
+      description: Missing or invalid token
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiErrorResponse'
+          example:
+            success: false
+            error:
+              code: UNAUTHORIZED
+              message: Unauthorized
+    AccountLockedError:
+      description: Account locked
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiErrorResponse'
+          example:
+            success: false
+            error:
+              code: ACCOUNT_LOCKED
+              message: Account is locked
+    ForbiddenError:
+      description: Not allowed
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiErrorResponse'
+          example:
+            success: false
+            error:
+              code: FORBIDDEN
+              message: Forbidden
+    NotFoundError:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiErrorResponse'
+          example:
+            success: false
+            error:
+              code: NOT_FOUND
+              message: Resource not found
+    ConflictError:
+      description: Conflict
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiErrorResponse'
+          example:
+            success: false
+            error:
+              code: CONFLICT
+              message: Resource already exists
+  schemas:
+    ApiSuccess:
+      type: object
+      required: [success, data]
+      properties:
+        success:
+          type: boolean
+          enum: [true]
+        data:
+          nullable: true
+    ApiErrorResponse:
+      type: object
+      required: [success, error]
+      properties:
+        success:
+          type: boolean
+          enum: [false]
+        error:
+          type: object
+          required: [code, message]
+          properties:
+            code:
+              type: string
+            message:
+              type: string
+            details:
+              nullable: true
+    HealthResponse:
+      allOf:
+        - $ref: '#/components/schemas/ApiSuccess'
+        - type: object
+          properties:
+            data:
+              type: object
+              required: [status, database]
+              properties:
+                status:
+                  type: string
+                  example: ok
+                database:
+                  type: string
+                  example: reachable
+    Role:
+      type: object
+      required: [id, code, name]
+      properties:
+        id:
+          type: integer
+        code:
+          type: string
+        name:
+          type: string
+    PublicUser:
+      type: object
+      required: [id, email, fullName, phoneNumber, avatarUrl, status, role, createdAt, updatedAt]
+      properties:
+        id:
+          type: string
+        email:
+          type: string
+          format: email
+        fullName:
+          type: string
+        phoneNumber:
+          oneOf:
+            - type: string
+            - type: 'null'
+        avatarUrl:
+          oneOf:
+            - type: string
+              format: uri
+            - type: 'null'
+        status:
+          type: string
+          enum: [HOAT_DONG, BI_KHOA, CHUA_XAC_THUC]
+        role:
+          $ref: '#/components/schemas/Role'
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    LoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+        fcmToken:
+          type: string
+        deviceType:
+          type: string
+    GoogleLoginRequest:
+      type: object
+      required: [idToken]
+      properties:
+        idToken:
+          type: string
+        fcmToken:
+          type: string
+        deviceType:
+          type: string
+    RefreshTokenRequest:
+      type: object
+      required: [refreshToken]
+      properties:
+        refreshToken:
+          type: string
+        fcmToken:
+          type: string
+        deviceType:
+          type: string
+    LogoutRequest:
+      type: object
+      required: [refreshToken]
+      properties:
+        refreshToken:
+          type: string
+    LoginResponse:
+      allOf:
+        - $ref: '#/components/schemas/ApiSuccess'
+        - type: object
+          properties:
+            data:
+              type: object
+              required: [user, accessToken, refreshToken, refreshTokenExpiresAt]
+              properties:
+                user:
+                  $ref: '#/components/schemas/PublicUser'
+                accessToken:
+                  type: string
+                refreshToken:
+                  type: string
+                refreshTokenExpiresAt:
+                  type: string
+                  format: date-time
+    RefreshTokenResponse:
+      allOf:
+        - $ref: '#/components/schemas/ApiSuccess'
+        - type: object
+          properties:
+            data:
+              type: object
+              required: [accessToken, refreshToken, refreshTokenExpiresAt]
+              properties:
+                accessToken:
+                  type: string
+                refreshToken:
+                  type: string
+                refreshTokenExpiresAt:
+                  type: string
+                  format: date-time
+    LoggedOutResponse:
+      allOf:
+        - $ref: '#/components/schemas/ApiSuccess'
+        - type: object
+          properties:
+            data:
+              type: object
+              required: [loggedOut]
+              properties:
+                loggedOut:
+                  type: boolean
+    UserResponse:
+      allOf:
+        - $ref: '#/components/schemas/ApiSuccess'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/PublicUser'
+    School:
+      type: object
+      required: [maTruongCode, tenTruong, createdAt, updatedAt]
+      properties:
+        maTruongCode:
+          type: string
+        tenTruong:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    SchoolListResponse:
+      allOf:
+        - $ref: '#/components/schemas/ApiSuccess'
+        - type: object
+          properties:
+            data:
+              type: array
+              items:
+                $ref: '#/components/schemas/School'
+    SchoolResponse:
+      allOf:
+        - $ref: '#/components/schemas/ApiSuccess'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/School'
+    CreateSchoolRequest:
+      type: object
+      required: [maTruongCode, tenTruong]
+      properties:
+        maTruongCode:
+          type: string
+        tenTruong:
+          type: string
+    UpdateSchoolRequest:
+      type: object
+      required: [tenTruong]
+      properties:
+        tenTruong:
+          type: string
+    SchoolDeleteResponse:
+      allOf:
+        - $ref: '#/components/schemas/ApiSuccess'
+        - type: object
+          properties:
+            data:
+              type: object
+              required: [deleted, maTruongCode]
+              properties:
+                deleted:
+                  type: boolean
+                maTruongCode:
+                  type: string
+    ScoreTierInput:
+      type: object
+      required: [thuTu, diemTu, diemDen, diemChu, he4]
+      properties:
+        thuTu:
+          type: integer
+        diemTu:
+          type: number
+        diemDen:
+          type: number
+        diemChu:
+          type: string
+        he4:
+          type: number
+    AcademicStandingInput:
+      type: object
+      required: [thuTu, xepLoai, gpaTu, gpaDen]
+      properties:
+        thuTu:
+          type: integer
+        xepLoai:
+          type: string
+        gpaTu:
+          type: number
+        gpaDen:
+          type: number
+    ScoreTier:
+      allOf:
+        - $ref: '#/components/schemas/ScoreTierInput'
+        - type: object
+          required: [maThangDiem, maTruongCode, createdAt, updatedAt]
+          properties:
+            maThangDiem:
+              type: string
+            maTruongCode:
+              type: string
+            createdAt:
+              type: string
+              format: date-time
+            updatedAt:
+              type: string
+              format: date-time
+    AcademicStandingRule:
+      allOf:
+        - $ref: '#/components/schemas/AcademicStandingInput'
+        - type: object
+          required: [maQuyCheHocLuc, maTruongCode, createdAt, updatedAt]
+          properties:
+            maQuyCheHocLuc:
+              type: string
+            maTruongCode:
+              type: string
+            createdAt:
+              type: string
+              format: date-time
+            updatedAt:
+              type: string
+              format: date-time
+    AcademicRulesResponse:
+      allOf:
+        - $ref: '#/components/schemas/ApiSuccess'
+        - type: object
+          properties:
+            data:
+              type: object
+              required: [maTruongCode, mucThangDiem, quyCheHocLuc]
+              properties:
+                maTruongCode:
+                  type: string
+                mucThangDiem:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/ScoreTier'
+                quyCheHocLuc:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/AcademicStandingRule'
+    UpdateScoreScaleRequest:
+      type: object
+      required: [mucThangDiem]
+      properties:
+        mucThangDiem:
+          type: array
+          minItems: 1
+          items:
+            $ref: '#/components/schemas/ScoreTierInput'
+    UpdateAcademicStandingRequest:
+      type: object
+      required: [quyCheHocLuc]
+      properties:
+        quyCheHocLuc:
+          type: array
+          minItems: 1
+          items:
+            $ref: '#/components/schemas/AcademicStandingInput'

@@ -1,4 +1,7 @@
-export interface PasswordHasher {
-  compare(plainText: string, hash: string): Promise<boolean>;
-  hash(plainText: string): Promise<string>;
+export interface BoMaHoaMatKhau {
+  soSanh(plainText: string, bam: string): Promise<boolean>;
+  bam(plainText: string): Promise<string>;
 }
+
+
+

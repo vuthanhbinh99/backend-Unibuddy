@@ -1,15 +1,18 @@
 import type { PoolClient, QueryResult, QueryResultRow } from "pg";
 
-export type QueryParams = readonly unknown[];
+export type ThamSoTruyVan = readonly unknown[];
 
-export interface QueryExecutor {
-  query<T extends QueryResultRow = QueryResultRow>(
+export interface BoThucThiTruyVan {
+  truyVan<T extends QueryResultRow = QueryResultRow>(
     text: string,
-    params?: QueryParams
+    params?: ThamSoTruyVan
   ): Promise<QueryResult<T>>;
 }
 
-export interface Database extends QueryExecutor {
-  connect(): Promise<PoolClient>;
-  close(): Promise<void>;
+export interface CoSoDuLieu extends BoThucThiTruyVan {
+  ketNoi(): Promise<PoolClient>;
+  dong(): Promise<void>;
 }
+
+
+

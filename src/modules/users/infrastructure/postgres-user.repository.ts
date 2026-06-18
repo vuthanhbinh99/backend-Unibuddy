@@ -1,19 +1,19 @@
 import { v7 as uuidv7 } from "uuid";
-import type { QueryExecutor } from "../../../shared/database/database.js";
+import type { BoThucThiTruyVan } from "../../../shared/database/database.js";
 import type {
-  CreateUserData,
-  UserRepository
+  DuLieuTaoNguoiDung,
+  KhoNguoiDung
 } from "../application/ports/user.repository.js";
-import type { User, UserStatus } from "../domain/user.js";
+import type { NguoiDung, TrangThaiNguoiDung } from "../domain/user.js";
 
-type UserRow = {
+type DongNguoiDung = {
   id: string;
   email: string;
   passwordHash: string;
   fullName: string;
   phoneNumber: string | null;
   avatarUrl: string | null;
-  status: UserStatus;
+  status: TrangThaiNguoiDung;
   createdAt: Date;
   updatedAt: Date;
   roleId: number;
@@ -21,7 +21,7 @@ type UserRow = {
   roleName: string;
 };
 
-const mapUser = (row: UserRow): User => ({
+const anhXaNguoiDung = (row: DongNguoiDung): NguoiDung => ({
   id: row.id,
   email: row.email,
   passwordHash: row.passwordHash,
@@ -38,7 +38,7 @@ const mapUser = (row: UserRow): User => ({
   updatedAt: row.updatedAt
 });
 
-const baseUserSelect = `
+const cauTruyVanCoSoNguoiDung = `
   SELECT
     nd.ma_nguoi_dung AS "id",
     nd.email AS "email",
@@ -56,37 +56,37 @@ const baseUserSelect = `
   INNER JOIN vai_tro vt ON vt.ma_vai_tro = nd.ma_vai_tro
 `;
 
-export class PostgresUserRepository implements UserRepository {
-  constructor(private readonly db: QueryExecutor) {}
+export class KhoNguoiDungPostgres implements KhoNguoiDung {
+  constructor(private readonly coSoDuLieu: BoThucThiTruyVan) {}
 
-  async findByEmail(email: string, executor: QueryExecutor = this.db) {
-    const result = await executor.query<UserRow>(
+  async timTheoEmail(email: string, boThucThi: BoThucThiTruyVan = this.coSoDuLieu) {
+    const ketQua = await boThucThi.truyVan<DongNguoiDung>(
       `
-        ${baseUserSelect}
+        ${cauTruyVanCoSoNguoiDung}
         WHERE LOWER(nd.email) = LOWER($1)
         LIMIT 1
       `,
       [email]
     );
 
-    return result.rows[0] ? mapUser(result.rows[0]) : null;
+    return ketQua.rows[0] ? anhXaNguoiDung(ketQua.rows[0]) : null;
   }
 
-  async findById(id: string, executor: QueryExecutor = this.db) {
-    const result = await executor.query<UserRow>(
+  async timTheoMa(id: string, boThucThi: BoThucThiTruyVan = this.coSoDuLieu) {
+    const ketQua = await boThucThi.truyVan<DongNguoiDung>(
       `
-        ${baseUserSelect}
+        ${cauTruyVanCoSoNguoiDung}
         WHERE nd.ma_nguoi_dung = $1
         LIMIT 1
       `,
       [id]
     );
 
-    return result.rows[0] ? mapUser(result.rows[0]) : null;
+    return ketQua.rows[0] ? anhXaNguoiDung(ketQua.rows[0]) : null;
   }
 
-  async create(data: CreateUserData, executor: QueryExecutor = this.db) {
-    const roleResult = await executor.query<{ roleId: number }>(
+  async tao(data: DuLieuTaoNguoiDung, boThucThi: BoThucThiTruyVan = this.coSoDuLieu) {
+    const roleResult = await boThucThi.truyVan<{ roleId: number }>(
       `
         SELECT ma_vai_tro AS "roleId"
         FROM vai_tro
@@ -104,7 +104,7 @@ export class PostgresUserRepository implements UserRepository {
 
     const id = uuidv7();
 
-    await executor.query(
+    await boThucThi.truyVan(
       `
         INSERT INTO nguoi_dung (
           ma_nguoi_dung,
@@ -132,7 +132,7 @@ export class PostgresUserRepository implements UserRepository {
       ]
     );
 
-    const createdUser = await this.findById(id, executor);
+    const createdUser = await this.timTheoMa(id, boThucThi);
 
     if (!createdUser) {
       throw new Error("Tạo tài khoản người dùng thất bại");
@@ -141,3 +141,6 @@ export class PostgresUserRepository implements UserRepository {
     return createdUser;
   }
 }
+
+
+

@@ -1,12 +1,15 @@
 import { Router } from "express";
-import type { AppContainer } from "../../container.js";
-import { HealthController } from "./health.controller.js";
+import type { BoPhuThuocUngDung } from "../../container.js";
+import { BoDieuKhienSucKhoe } from "./health.controller.js";
 
-export const buildHealthRoutes = (container: AppContainer) => {
+export const xayDungTuyenDuongSucKhoe = (boPhuThuoc: BoPhuThuocUngDung) => {
   const router = Router();
-  const controller = new HealthController(container);
+  const controller = new BoDieuKhienSucKhoe(boPhuThuoc);
 
-  router.get("/", controller.show);
+  router.get("/", controller.hienThi);
 
   return router;
 };
+
+
+

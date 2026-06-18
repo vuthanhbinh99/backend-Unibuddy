@@ -1,12 +1,15 @@
 import bcrypt from "bcryptjs";
-import type { PasswordHasher } from "../application/ports/password-hasher.js";
+import type { BoMaHoaMatKhau } from "../application/ports/password-hasher.js";
 
-export class BcryptPasswordHasher implements PasswordHasher {
-  compare(plainText: string, hash: string) {
-    return bcrypt.compare(plainText, hash);
+export class BoMaHoaMatKhauBcrypt implements BoMaHoaMatKhau {
+  soSanh(plainText: string, bam: string) {
+    return bcrypt.compare(plainText, bam);
   }
 
-  hash(plainText: string) {
+  bam(plainText: string) {
     return bcrypt.hash(plainText, 12);
   }
 }
+
+
+

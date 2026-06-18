@@ -1,16 +1,21 @@
 import { Router } from "express";
-import { buildContainer } from "./container.js";
-import { buildAuthRoutes } from "./modules/auth/presentation/auth.routes.js";
-import { buildHealthRoutes } from "./modules/health/health.routes.js";
-import { buildUserRoutes } from "./modules/users/presentation/user.routes.js";
+import { xayDungBoPhuThuoc } from "./container.js";
+import { xayDungTuyenDuongXacThuc } from "./modules/auth/presentation/auth.routes.js";
+import { xayDungTuyenDuongSucKhoe } from "./modules/health/health.routes.js";
+import { xayDungTuyenDuongTruongHoc } from "./modules/schools/presentation/school.routes.js";
+import { xayDungTuyenDuongNguoiDung } from "./modules/users/presentation/user.routes.js";
 
-export const buildRoutes = () => {
+export const xayDungTuyenDuong = () => {
   const router = Router();
-  const container = buildContainer();
+  const boPhuThuoc = xayDungBoPhuThuoc();
 
-  router.use("/health", buildHealthRoutes(container));
-  router.use("/auth", buildAuthRoutes(container));
-  router.use("/users", buildUserRoutes(container));
+  router.use("/health", xayDungTuyenDuongSucKhoe(boPhuThuoc));
+  router.use("/auth", xayDungTuyenDuongXacThuc(boPhuThuoc));
+  router.use("/users", xayDungTuyenDuongNguoiDung(boPhuThuoc));
+  router.use("/admin/schools", xayDungTuyenDuongTruongHoc(boPhuThuoc));
 
   return router;
 };
+
+
+

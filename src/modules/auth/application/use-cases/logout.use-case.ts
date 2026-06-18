@@ -1,29 +1,29 @@
-import type { AuditLogRepository } from "../../../audit-logs/application/ports/audit-log.repository.js";
-import type { TransactionManager } from "../../../../shared/database/transaction.js";
-import type { SessionRepository } from "../ports/session.repository.js";
-import type { TokenService } from "../ports/token.service.js";
+import type { KhoNhatKyHeThong } from "../../../audit-logs/application/ports/audit-log.repository.js";
+import type { BoQuanLyGiaoDich } from "../../../../shared/database/transaction.js";
+import type { KhoPhienDangNhap } from "../ports/session.repository.js";
+import type { DichVuToken } from "../ports/token.service.js";
 
-export type LogoutCommand = {
+export type LenhDangXuat = {
   refreshToken: string;
   actorId?: string | null;
 };
 
-type Dependencies = {
-  sessionRepository: SessionRepository;
-  auditLogRepository: AuditLogRepository;
-  tokenService: TokenService;
-  transactions: TransactionManager;
+type PhuThuoc = {
+  khoPhienDangNhap: KhoPhienDangNhap;
+  khoNhatKyHeThong: KhoNhatKyHeThong;
+  dichVuToken: DichVuToken;
+  giaoDich: BoQuanLyGiaoDich;
 };
 
-export class LogoutUseCase {
-  constructor(private readonly deps: Dependencies) {}
+export class XuLyDangXuat {
+  constructor(private readonly deps: PhuThuoc) {}
 
-  async execute(command: LogoutCommand): Promise<void> {
-    const refreshTokenHash = this.deps.tokenService.hashRefreshToken(command.refreshToken);
+  async thucThi(command: LenhDangXuat): Promise<void> {
+    const refreshTokenHash = this.deps.dichVuToken.bamTokenLamMoi(command.refreshToken);
 
-    await this.deps.transactions.withTransaction(async (tx) => {
-      await this.deps.sessionRepository.revokeByRefreshTokenHash(refreshTokenHash, tx);
-      await this.deps.auditLogRepository.create(
+    await this.deps.giaoDich.thucThiTrongGiaoDich(async (tx) => {
+      await this.deps.khoPhienDangNhap.thuHoiTheoBamTokenLamMoi(refreshTokenHash, tx);
+      await this.deps.khoNhatKyHeThong.tao(
         {
           actorId: command.actorId ?? null,
           level: "INFO",
@@ -36,3 +36,6 @@ export class LogoutUseCase {
     });
   }
 }
+
+
+

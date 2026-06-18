@@ -1,20 +1,23 @@
-import { createApp } from "./app.js";
-import { config } from "./shared/config/env.js";
-import { logger } from "./shared/logger/logger.js";
+import { taoUngDung } from "./app.js";
+import { cauHinh } from "./shared/config/env.js";
+import { nhatKy } from "./shared/logger/logger.js";
 
-const app = createApp();
+const ungDung = taoUngDung();
 
-const server = app.listen(config.port, () => {
-  logger.info(`UniBuddy API listening on port ${config.port}`);
+const mayChu = ungDung.listen(cauHinh.port, () => {
+  nhatKy.info(`UniBuddy API listening on port ${cauHinh.port}`);
 });
 
-const shutdown = (signal: string) => {
-  logger.info(`${signal} received. Shutting down HTTP server...`);
-  server.close(() => {
-    logger.info("HTTP server closed.");
+const shutdown = (tinHieu: string) => {
+  nhatKy.info(`${tinHieu} received. Shutting down HTTP mayChu...`);
+  mayChu.close(() => {
+    nhatKy.info("HTTP mayChu closed.");
     process.exit(0);
   });
 };
 
 process.on("SIGTERM", () => shutdown("SIGTERM"));
 process.on("SIGINT", () => shutdown("SIGINT"));
+
+
+

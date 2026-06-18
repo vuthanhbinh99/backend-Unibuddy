@@ -1,12 +1,15 @@
-export type VerifiedGoogleIdentity = {
+export type DanhTinhGoogleDaXacMinh = {
   subject: string;
   email: string;
-  emailVerified: boolean;
+  emailDaXacThuc: boolean;
   fullName: string | null;
   avatarUrl: string | null;
   audience: string | null;
 };
 
-export interface GoogleIdentityVerifier {
-  verifyIdToken(idToken: string): Promise<VerifiedGoogleIdentity>;
+export interface BoKiemTraDanhTinhGoogle {
+  xacThucIdToken(idToken: string): Promise<DanhTinhGoogleDaXacMinh>;
 }
+
+
+

@@ -1,18 +1,21 @@
-import type { QueryExecutor } from "../../../../shared/database/database.js";
-import type { User, UserStatus } from "../../domain/user.js";
+import type { BoThucThiTruyVan } from "../../../../shared/database/database.js";
+import type { NguoiDung, TrangThaiNguoiDung } from "../../domain/user.js";
 
-export type CreateUserData = {
+export type DuLieuTaoNguoiDung = {
   email: string;
   passwordHash: string;
   fullName: string;
   phoneNumber?: string | null;
   avatarUrl?: string | null;
-  status?: UserStatus;
+  status?: TrangThaiNguoiDung;
   roleCode: string;
 };
 
-export interface UserRepository {
-  findByEmail(email: string, executor?: QueryExecutor): Promise<User | null>;
-  findById(id: string, executor?: QueryExecutor): Promise<User | null>;
-  create(data: CreateUserData, executor?: QueryExecutor): Promise<User>;
+export interface KhoNguoiDung {
+  timTheoEmail(email: string, boThucThi?: BoThucThiTruyVan): Promise<NguoiDung | null>;
+  timTheoMa(id: string, boThucThi?: BoThucThiTruyVan): Promise<NguoiDung | null>;
+  tao(data: DuLieuTaoNguoiDung, boThucThi?: BoThucThiTruyVan): Promise<NguoiDung>;
 }
+
+
+

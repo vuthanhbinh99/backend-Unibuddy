@@ -3,28 +3,31 @@ import cors from "cors";
 import express from "express";
 import helmet from "helmet";
 import morgan from "morgan";
-import { buildRoutes } from "./routes.js";
-import { config } from "./shared/config/env.js";
-import { errorHandler } from "./shared/middleware/error-handler.js";
-import { notFoundHandler } from "./shared/middleware/not-found-handler.js";
-import { requestContext } from "./shared/middleware/request-context.js";
+import { xayDungTuyenDuong } from "./routes.js";
+import { cauHinh } from "./shared/config/env.js";
+import { xuLyLoi } from "./shared/middleware/error-handler.js";
+import { xuLyKhongTimThay } from "./shared/middleware/not-found-handler.js";
+import { taoBoiCanhYeuCau } from "./shared/middleware/request-context.js";
 
-export const createApp = () => {
-  const app = express();
+export const taoUngDung = () => {
+  const ungDung = express();
 
-  app.disable("x-powered-by");
-  app.use(helmet());
-  app.use(compression());
-  app.use(cors({ origin: config.corsOrigins }));
-  app.use(express.json({ limit: "2mb" }));
-  app.use(express.urlencoded({ extended: true }));
-  app.use(morgan(config.nodeEnv === "production" ? "combined" : "dev"));
-  app.use(requestContext);
+  ungDung.disable("x-powered-by");
+  ungDung.use(helmet());
+  ungDung.use(compression());
+  ungDung.use(cors({ origin: cauHinh.corsOrigins }));
+  ungDung.use(express.json({ limit: "2mb" }));
+  ungDung.use(express.urlencoded({ extended: true }));
+  ungDung.use(morgan(cauHinh.nodeEnv === "production" ? "combined" : "dev"));
+  ungDung.use(taoBoiCanhYeuCau);
 
-  app.use("/api/v1", buildRoutes());
+  ungDung.use("/api/v1", xayDungTuyenDuong());
 
-  app.use(notFoundHandler);
-  app.use(errorHandler);
+  ungDung.use(xuLyKhongTimThay);
+  ungDung.use(xuLyLoi);
 
-  return app;
+  return ungDung;
 };
+
+
+

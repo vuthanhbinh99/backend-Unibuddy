@@ -1,26 +1,29 @@
 import pg from "pg";
-import { config } from "../config/env.js";
-import type { Database, QueryParams } from "./database.js";
+import { cauHinh } from "../config/env.js";
+import type { CoSoDuLieu, ThamSoTruyVan } from "./database.js";
 
-export class PostgresConnectionPool implements Database {
+export class KetNoiPostgres implements CoSoDuLieu {
   private readonly pool: pg.Pool;
 
   constructor() {
     this.pool = new pg.Pool({
-      connectionString: config.database.url,
-      ssl: config.database.ssl ? { rejectUnauthorized: false } : false
+      connectionString: cauHinh.database.url,
+      ssl: cauHinh.database.ssl ? { rejectUnauthorized: false } : false
     });
   }
 
-  query<T extends pg.QueryResultRow = pg.QueryResultRow>(text: string, params?: QueryParams) {
+  truyVan<T extends pg.QueryResultRow = pg.QueryResultRow>(text: string, params?: ThamSoTruyVan) {
     return this.pool.query<T>(text, params as unknown[]);
   }
 
-  connect() {
+  ketNoi() {
     return this.pool.connect();
   }
 
-  async close() {
+  async dong() {
     await this.pool.end();
   }
 }
+
+
+

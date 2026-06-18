@@ -1,9 +1,9 @@
 import { v7 as uuidv7 } from "uuid";
-import type { QueryExecutor } from "../../../shared/database/database.js";
-import type { SessionRepository } from "../application/ports/session.repository.js";
-import type { CreateSessionData, Session } from "../domain/session.js";
+import type { BoThucThiTruyVan } from "../../../shared/database/database.js";
+import type { KhoPhienDangNhap } from "../application/ports/session.repository.js";
+import type { DuLieuTaoPhienDangNhap, PhienDangNhap } from "../domain/session.js";
 
-type SessionRow = {
+type DongPhienDangNhap = {
   id: string;
   userId: string;
   refreshTokenHash: string;
@@ -17,7 +17,7 @@ type SessionRow = {
   createdAt: Date;
 };
 
-const mapSession = (row: SessionRow): Session => ({
+const anhXaPhienDangNhap = (row: DongPhienDangNhap): PhienDangNhap => ({
   id: row.id,
   userId: row.userId,
   refreshTokenHash: row.refreshTokenHash,
@@ -31,11 +31,11 @@ const mapSession = (row: SessionRow): Session => ({
   createdAt: row.createdAt
 });
 
-export class PostgresSessionRepository implements SessionRepository {
-  constructor(private readonly db: QueryExecutor) {}
+export class KhoPhienDangNhapPostgres implements KhoPhienDangNhap {
+  constructor(private readonly coSoDuLieu: BoThucThiTruyVan) {}
 
-  async create(data: CreateSessionData, executor: QueryExecutor = this.db) {
-    const result = await executor.query<SessionRow>(
+  async tao(data: DuLieuTaoPhienDangNhap, boThucThi: BoThucThiTruyVan = this.coSoDuLieu) {
+    const ketQua = await boThucThi.truyVan<DongPhienDangNhap>(
       `
         INSERT INTO phien_dang_nhap (
           ma_phien,
@@ -75,11 +75,11 @@ export class PostgresSessionRepository implements SessionRepository {
       ]
     );
 
-    return mapSession(result.rows[0]);
+    return anhXaPhienDangNhap(ketQua.rows[0]);
   }
 
-  async findActiveByRefreshTokenHash(refreshTokenHash: string, executor: QueryExecutor = this.db) {
-    const result = await executor.query<SessionRow>(
+  async timTheoBamTokenLamMoi(refreshTokenHash: string, boThucThi: BoThucThiTruyVan = this.coSoDuLieu) {
+    const ketQua = await boThucThi.truyVan<DongPhienDangNhap>(
       `
         UPDATE phien_dang_nhap
         SET lan_hoat_dong_cuoi = NOW()
@@ -102,11 +102,11 @@ export class PostgresSessionRepository implements SessionRepository {
       [refreshTokenHash]
     );
 
-    return result.rows[0] ? mapSession(result.rows[0]) : null;
+    return ketQua.rows[0] ? anhXaPhienDangNhap(ketQua.rows[0]) : null;
   }
 
-  async clearFcmToken(fcmToken: string, executor: QueryExecutor = this.db) {
-    await executor.query(
+  async lamSachFcmToken(fcmToken: string, boThucThi: BoThucThiTruyVan = this.coSoDuLieu) {
+    await boThucThi.truyVan(
       `
         UPDATE phien_dang_nhap
         SET fcm_token = NULL
@@ -117,8 +117,8 @@ export class PostgresSessionRepository implements SessionRepository {
     );
   }
 
-  async revokeByRefreshTokenHash(refreshTokenHash: string, executor: QueryExecutor = this.db) {
-    await executor.query(
+  async thuHoiTheoBamTokenLamMoi(refreshTokenHash: string, boThucThi: BoThucThiTruyVan = this.coSoDuLieu) {
+    await boThucThi.truyVan(
       `
         UPDATE phien_dang_nhap
         SET thoi_gian_thu_hoi = COALESCE(thoi_gian_thu_hoi, NOW())
@@ -128,8 +128,8 @@ export class PostgresSessionRepository implements SessionRepository {
     );
   }
 
-  async revokeActiveSessionsByUserId(userId: string, executor: QueryExecutor = this.db) {
-    await executor.query(
+  async thuHoiPhienHoatDongTheoMaNguoiDung(userId: string, boThucThi: BoThucThiTruyVan = this.coSoDuLieu) {
+    await boThucThi.truyVan(
       `
         UPDATE phien_dang_nhap
         SET thoi_gian_thu_hoi = COALESCE(thoi_gian_thu_hoi, NOW())
@@ -140,3 +140,6 @@ export class PostgresSessionRepository implements SessionRepository {
     );
   }
 }
+
+
+

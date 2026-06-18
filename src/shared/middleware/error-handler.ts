@@ -1,30 +1,30 @@
 import type { ErrorRequestHandler } from "express";
-import { AppError } from "../errors/app-error.js";
-import { ErrorCodes } from "../errors/error-codes.js";
-import { logger } from "../logger/logger.js";
+import { LoiUngDung } from "../errors/app-error.js";
+import { CacLoi } from "../errors/error-codes.js";
+import { nhatKy } from "../logger/logger.js";
 
-export const errorHandler: ErrorRequestHandler = (error, req, res, _next) => {
-  if (error instanceof AppError) {
-    res.status(error.statusCode).json({
+export const xuLyLoi: ErrorRequestHandler = (error, req, res, _next) => {
+  if (error instanceof LoiUngDung) {
+    res.status(error.maTrangThai).json({
       success: false,
       error: {
-        code: error.code,
+        code: error.maLoi,
         message: error.message,
-        details: error.details
+        details: error.chiTiet
       }
     });
     return;
   }
 
-  logger.error("Unhandled error", {
-    requestId: req.requestId,
+  nhatKy.error("Unhandled error", {
+    maYeuCau: req.maYeuCau,
     error
   });
 
   res.status(500).json({
     success: false,
     error: {
-      code: ErrorCodes.INTERNAL_ERROR,
+      code: CacLoi.INTERNAL_ERROR,
       message: "Internal server error"
     }
   });

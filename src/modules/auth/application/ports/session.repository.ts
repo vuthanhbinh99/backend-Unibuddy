@@ -1,13 +1,16 @@
-import type { QueryExecutor } from "../../../../shared/database/database.js";
-import type { CreateSessionData, Session } from "../../domain/session.js";
+import type { BoThucThiTruyVan } from "../../../../shared/database/database.js";
+import type { DuLieuTaoPhienDangNhap, PhienDangNhap } from "../../domain/session.js";
 
-export interface SessionRepository {
-  create(data: CreateSessionData, executor?: QueryExecutor): Promise<Session>;
-  findActiveByRefreshTokenHash(
+export interface KhoPhienDangNhap {
+  tao(data: DuLieuTaoPhienDangNhap, boThucThi?: BoThucThiTruyVan): Promise<PhienDangNhap>;
+  timTheoBamTokenLamMoi(
     refreshTokenHash: string,
-    executor?: QueryExecutor
-  ): Promise<Session | null>;
-  clearFcmToken(fcmToken: string, executor?: QueryExecutor): Promise<void>;
-  revokeByRefreshTokenHash(refreshTokenHash: string, executor?: QueryExecutor): Promise<void>;
-  revokeActiveSessionsByUserId(userId: string, executor?: QueryExecutor): Promise<void>;
+    boThucThi?: BoThucThiTruyVan
+  ): Promise<PhienDangNhap | null>;
+  lamSachFcmToken(fcmToken: string, boThucThi?: BoThucThiTruyVan): Promise<void>;
+  thuHoiTheoBamTokenLamMoi(refreshTokenHash: string, boThucThi?: BoThucThiTruyVan): Promise<void>;
+  thuHoiPhienHoatDongTheoMaNguoiDung(userId: string, boThucThi?: BoThucThiTruyVan): Promise<void>;
 }
+
+
+

@@ -1,11 +1,11 @@
-import type { AuditLogRepository } from "../../../audit-logs/application/ports/audit-log.repository.js";
-import type { UserRepository } from "../../../users/application/ports/user.repository.js";
-import type { TransactionManager } from "../../../../shared/database/transaction.js";
-import { AppError } from "../../../../shared/errors/app-error.js";
-import type { SessionRepository } from "../ports/session.repository.js";
-import type { TokenService } from "../ports/token.service.js";
+import type { KhoNhatKyHeThong } from "../../../audit-logs/application/ports/audit-log.repository.js";
+import type { KhoNguoiDung } from "../../../users/application/ports/user.repository.js";
+import type { BoQuanLyGiaoDich } from "../../../../shared/database/transaction.js";
+import { LoiUngDung } from "../../../../shared/errors/app-error.js";
+import type { KhoPhienDangNhap } from "../ports/session.repository.js";
+import type { DichVuToken } from "../ports/token.service.js";
 
-export type RefreshTokenCommand = {
+export type LenhLamMoiToken = {
   refreshToken: string;
   device?: {
     fcmToken?: string | null;
@@ -15,43 +15,43 @@ export type RefreshTokenCommand = {
   };
 };
 
-export type RefreshTokenResult = {
+export type KetQuaLamMoiToken = {
   accessToken: string;
   refreshToken: string;
   refreshTokenExpiresAt: Date;
 };
 
-type Dependencies = {
-  userRepository: UserRepository;
-  sessionRepository: SessionRepository;
-  auditLogRepository: AuditLogRepository;
-  tokenService: TokenService;
-  transactions: TransactionManager;
+type PhuThuoc = {
+  khoNguoiDung: KhoNguoiDung;
+  khoPhienDangNhap: KhoPhienDangNhap;
+  khoNhatKyHeThong: KhoNhatKyHeThong;
+  dichVuToken: DichVuToken;
+  giaoDich: BoQuanLyGiaoDich;
 };
 
-export class RefreshTokenUseCase {
-  constructor(private readonly deps: Dependencies) {}
+export class XuLyLamMoiToken {
+  constructor(private readonly deps: PhuThuoc) {}
 
-  async execute(command: RefreshTokenCommand): Promise<RefreshTokenResult> {
-    const oldRefreshTokenHash = this.deps.tokenService.hashRefreshToken(command.refreshToken);
-    const session = await this.deps.sessionRepository.findActiveByRefreshTokenHash(
-      oldRefreshTokenHash
+  async thucThi(command: LenhLamMoiToken): Promise<KetQuaLamMoiToken> {
+    const bamTokenLamMoiCu = this.deps.dichVuToken.bamTokenLamMoi(command.refreshToken);
+    const phienDangNhap = await this.deps.khoPhienDangNhap.timTheoBamTokenLamMoi(
+      bamTokenLamMoiCu
     );
 
-    if (!session) {
-      throw AppError.unauthorized("refresh token bị sai hoặc hết hạn");
+    if (!phienDangNhap) {
+      throw LoiUngDung.khongDuocXacThuc("lamMoiToken token bị sai hoặc hết hạn");
     }
 
-    const user = await this.deps.userRepository.findById(session.userId);
+    const user = await this.deps.khoNguoiDung.timTheoMa(phienDangNhap.userId);
 
     if (!user) {
-      throw AppError.unauthorized("Người dùng sở hữu phiên đăng nhập không tồn tại");
+      throw LoiUngDung.khongDuocXacThuc("Người dùng sở hữu phiên đăng nhập không tồn tại");
     }
 
     if (user.status === "BI_KHOA") {
-      await this.deps.transactions.withTransaction(async (tx) => {
-        await this.deps.sessionRepository.revokeActiveSessionsByUserId(user.id, tx);
-        await this.deps.auditLogRepository.create(
+      await this.deps.giaoDich.thucThiTrongGiaoDich(async (tx) => {
+        await this.deps.khoPhienDangNhap.thuHoiPhienHoatDongTheoMaNguoiDung(user.id, tx);
+        await this.deps.khoNhatKyHeThong.tao(
           {
             actorId: user.id,
             level: "WARNING",
@@ -64,40 +64,40 @@ export class RefreshTokenUseCase {
         );
       });
 
-      throw AppError.locked("Tài khoản đã bị khóa và không thể làm mới token");
+      throw LoiUngDung.biKhoa("Tài khoản đã bị khóa và không thể làm mới token");
     }
 
-    const accessToken = this.deps.tokenService.signAccessToken({
+    const accessToken = this.deps.dichVuToken.kyTokenTruyCap({
       id: user.id,
       email: user.email,
       roleCode: user.role.code
     });
 
-    const newRefreshToken = this.deps.tokenService.generateRefreshToken();
-    const newRefreshTokenHash = this.deps.tokenService.hashRefreshToken(newRefreshToken);
-    const refreshTokenExpiresAt = this.deps.tokenService.getRefreshTokenExpiresAt();
+    const tokenLamMoiMoi = this.deps.dichVuToken.taoTokenLamMoi();
+    const tokenLamMoiMoiHash = this.deps.dichVuToken.bamTokenLamMoi(tokenLamMoiMoi);
+    const refreshTokenExpiresAt = this.deps.dichVuToken.layThoiGianHetHanTokenLamMoi();
 
-    await this.deps.transactions.withTransaction(async (tx) => {
-      await this.deps.sessionRepository.revokeByRefreshTokenHash(oldRefreshTokenHash, tx);
+    await this.deps.giaoDich.thucThiTrongGiaoDich(async (tx) => {
+      await this.deps.khoPhienDangNhap.thuHoiTheoBamTokenLamMoi(bamTokenLamMoiCu, tx);
 
       if (command.device?.fcmToken) {
-        await this.deps.sessionRepository.clearFcmToken(command.device.fcmToken, tx);
+        await this.deps.khoPhienDangNhap.lamSachFcmToken(command.device.fcmToken, tx);
       }
 
-      await this.deps.sessionRepository.create(
+      await this.deps.khoPhienDangNhap.tao(
         {
           userId: user.id,
-          refreshTokenHash: newRefreshTokenHash,
-          fcmToken: command.device?.fcmToken ?? session.fcmToken,
-          deviceType: command.device?.deviceType ?? session.deviceType,
-          ipAddress: command.device?.ipAddress ?? session.ipAddress,
-          userAgent: command.device?.userAgent ?? session.userAgent,
+          refreshTokenHash: tokenLamMoiMoiHash,
+          fcmToken: command.device?.fcmToken ?? phienDangNhap.fcmToken,
+          deviceType: command.device?.deviceType ?? phienDangNhap.deviceType,
+          ipAddress: command.device?.ipAddress ?? phienDangNhap.ipAddress,
+          userAgent: command.device?.userAgent ?? phienDangNhap.userAgent,
           expiresAt: refreshTokenExpiresAt
         },
         tx
       );
 
-      await this.deps.auditLogRepository.create(
+      await this.deps.khoNhatKyHeThong.tao(
         {
           actorId: user.id,
           level: "INFO",
@@ -111,8 +111,11 @@ export class RefreshTokenUseCase {
 
     return {
       accessToken,
-      refreshToken: newRefreshToken,
+      refreshToken: tokenLamMoiMoi,
       refreshTokenExpiresAt
     };
   }
 }
+
+
+

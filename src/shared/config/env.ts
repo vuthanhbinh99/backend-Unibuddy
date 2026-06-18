@@ -33,7 +33,7 @@ const googleClientIds = parsedEnv.data.GOOGLE_CLIENT_IDS.split(",")
   .map((clientId) => clientId.trim())
   .filter(Boolean);
 
-export const config = {
+export const cauHinh = {
   nodeEnv: parsedEnv.data.NODE_ENV,
   port: parsedEnv.data.PORT,
   database: {
@@ -47,7 +47,10 @@ export const config = {
   },
   auth: {
     googleClientIds,
-    defaultStudentRoleCode: parsedEnv.data.DEFAULT_STUDENT_ROLE_CODE
+    maCodeVaiTroSinhVienMacDinh: parsedEnv.data.DEFAULT_STUDENT_ROLE_CODE
   },
   corsOrigins
 } as const;
+
+
+

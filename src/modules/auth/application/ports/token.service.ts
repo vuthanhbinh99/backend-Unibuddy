@@ -1,9 +1,12 @@
-import type { AuthenticatedUser } from "../../domain/auth-token-payload.js";
+import type { NguoiDungXacThuc } from "../../domain/auth-token-payload.js";
 
-export interface TokenService {
-  signAccessToken(user: AuthenticatedUser): string;
-  verifyAccessToken(token: string): AuthenticatedUser;
-  generateRefreshToken(): string;
-  hashRefreshToken(token: string): string;
-  getRefreshTokenExpiresAt(): Date;
+export interface DichVuToken {
+  kyTokenTruyCap(user: NguoiDungXacThuc): string;
+  xacThucTokenTruyCap(token: string): NguoiDungXacThuc;
+  taoTokenLamMoi(): string;
+  bamTokenLamMoi(token: string): string;
+  layThoiGianHetHanTokenLamMoi(): Date;
 }
+
+
+

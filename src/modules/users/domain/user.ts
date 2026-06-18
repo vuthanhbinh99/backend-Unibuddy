@@ -1,27 +1,27 @@
-export type UserStatus = "HOAT_DONG" | "BI_KHOA" | "CHUA_XAC_THUC";
+export type TrangThaiNguoiDung = "HOAT_DONG" | "BI_KHOA" | "CHUA_XAC_THUC";
 
-export type UserRole = {
+export type VaiTroNguoiDung = {
   id: number;
   code: string;
   name: string;
 };
 
-export type User = {
+export type NguoiDung = {
   id: string;
   email: string;
   passwordHash: string;
   fullName: string;
   phoneNumber: string | null;
   avatarUrl: string | null;
-  status: UserStatus;
-  role: UserRole;
+  status: TrangThaiNguoiDung;
+  role: VaiTroNguoiDung;
   createdAt: Date;
   updatedAt: Date;
 };
 
-export type PublicUser = Omit<User, "passwordHash">;
+export type NguoiDungCongKhai = Omit<NguoiDung, "passwordHash">;
 
-export const toPublicUser = (user: User): PublicUser => ({
+export const anhXaNguoiDungCongKhai = (user: NguoiDung): NguoiDungCongKhai => ({
   id: user.id,
   email: user.email,
   fullName: user.fullName,
@@ -32,3 +32,6 @@ export const toPublicUser = (user: User): PublicUser => ({
   createdAt: user.createdAt,
   updatedAt: user.updatedAt
 });
+
+
+

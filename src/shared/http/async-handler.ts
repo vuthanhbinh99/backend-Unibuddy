@@ -1,8 +1,11 @@
 import type { NextFunction, Request, Response } from "express";
 
-type AsyncRoute = (req: Request, res: Response, next: NextFunction) => Promise<unknown>;
+type TuyenXuLyBatDongBo = (req: Request, res: Response, next: NextFunction) => Promise<unknown>;
 
-export const asyncHandler =
-  (route: AsyncRoute) => (req: Request, res: Response, next: NextFunction) => {
-    void route(req, res, next).catch(next);
+export const xuLyBatDongBo =
+  (tuyenXuLy: TuyenXuLyBatDongBo) => (req: Request, res: Response, next: NextFunction) => {
+    void tuyenXuLy(req, res, next).catch(next);
   };
+
+
+

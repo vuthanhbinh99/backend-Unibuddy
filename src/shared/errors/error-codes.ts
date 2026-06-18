@@ -1,4 +1,4 @@
-export const ErrorCodes = {
+export const CacLoi = {
   VALIDATION_ERROR: "VALIDATION_ERROR",
   UNAUTHORIZED: "UNAUTHORIZED",
   FORBIDDEN: "FORBIDDEN",
@@ -8,4 +8,7 @@ export const ErrorCodes = {
   INTERNAL_ERROR: "INTERNAL_ERROR"
 } as const;
 
-export type ErrorCode = (typeof ErrorCodes)[keyof typeof ErrorCodes];
+export type MaLoi = (typeof CacLoi)[keyof typeof CacLoi];
+
+
+

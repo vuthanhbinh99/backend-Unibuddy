@@ -1,26 +1,29 @@
 import type { NextFunction, Request, Response } from "express";
 import type { AnyZodObject, ZodError } from "zod";
-import { AppError } from "../errors/app-error.js";
+import { LoiUngDung } from "../errors/app-error.js";
 
-const formatZodError = (error: ZodError) =>
+const dinhDangLoiZod = (error: ZodError) =>
   error.errors.map((item) => ({
     path: item.path.join("."),
     message: item.message
   }));
 
-export const validateRequest =
-  (schema: AnyZodObject) => (req: Request, _res: Response, next: NextFunction) => {
-    const result = schema.safeParse({
+export const xacThucYeuCau =
+  (luocDo: AnyZodObject) => (req: Request, _res: Response, next: NextFunction) => {
+    const ketQua = luocDo.safeParse({
       body: req.body,
       params: req.params,
       query: req.query
     });
 
-    if (!result.success) {
-      next(AppError.badRequest("Invalid request data", formatZodError(result.error)));
+    if (!ketQua.success) {
+      next(LoiUngDung.yeuCauSai("Invalid request data", dinhDangLoiZod(ketQua.error)));
       return;
     }
 
-    req.validated = result.data;
+    req.duLieuDaXacThuc = ketQua.data;
     next();
   };
+
+
+

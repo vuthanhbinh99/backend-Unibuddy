@@ -1,37 +1,40 @@
-import { ErrorCodes, type ErrorCode } from "./error-codes.js";
+import { CacLoi, type MaLoi } from "./error-codes.js";
 
-export class AppError extends Error {
+export class LoiUngDung extends Error {
   constructor(
-    public readonly statusCode: number,
-    public readonly code: ErrorCode,
+    public readonly maTrangThai: number,
+    public readonly maLoi: MaLoi,
     message: string,
-    public readonly details?: unknown
+    public readonly chiTiet?: unknown
   ) {
     super(message);
-    this.name = "AppError";
+    this.name = "LoiUngDung";
   }
 
-  static badRequest(message: string, details?: unknown) {
-    return new AppError(400, ErrorCodes.VALIDATION_ERROR, message, details);
+  static yeuCauSai(message: string, chiTiet?: unknown) {
+    return new LoiUngDung(400, CacLoi.VALIDATION_ERROR, message, chiTiet);
   }
 
-  static unauthorized(message = "Unauthorized") {
-    return new AppError(401, ErrorCodes.UNAUTHORIZED, message);
+  static khongDuocXacThuc(message = "Unauthorized") {
+    return new LoiUngDung(401, CacLoi.UNAUTHORIZED, message);
   }
 
-  static forbidden(message = "Forbidden") {
-    return new AppError(403, ErrorCodes.FORBIDDEN, message);
+  static khongCoQuyen(message = "Forbidden") {
+    return new LoiUngDung(403, CacLoi.FORBIDDEN, message);
   }
 
-  static notFound(message = "Resource not found") {
-    return new AppError(404, ErrorCodes.NOT_FOUND, message);
+  static khongTimThay(message = "Resource not found") {
+    return new LoiUngDung(404, CacLoi.NOT_FOUND, message);
   }
 
-  static conflict(message: string, details?: unknown) {
-    return new AppError(409, ErrorCodes.CONFLICT, message, details);
+  static xungDot(message: string, chiTiet?: unknown) {
+    return new LoiUngDung(409, CacLoi.CONFLICT, message, chiTiet);
   }
 
-  static locked(message = "Account is locked") {
-    return new AppError(423, ErrorCodes.ACCOUNT_LOCKED, message);
+  static biKhoa(message = "Account is locked") {
+    return new LoiUngDung(423, CacLoi.ACCOUNT_LOCKED, message);
   }
 }
+
+
+

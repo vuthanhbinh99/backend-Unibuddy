@@ -1,12 +1,12 @@
-import type { QueryExecutor } from "../../../shared/database/database.js";
-import type { AuditLogRepository } from "../application/ports/audit-log.repository.js";
-import type { AuditLogEntry } from "../domain/audit-log-entry.js";
+import type { BoThucThiTruyVan } from "../../../shared/database/database.js";
+import type { KhoNhatKyHeThong } from "../application/ports/audit-log.repository.js";
+import type { BanGhiNhatKyHeThong } from "../domain/audit-log-entry.js";
 
-export class PostgresAuditLogRepository implements AuditLogRepository {
-  constructor(private readonly db: QueryExecutor) {}
+export class KhoNhatKyHeThongPostgres implements KhoNhatKyHeThong {
+  constructor(private readonly coSoDuLieu: BoThucThiTruyVan) {}
 
-  async create(entry: AuditLogEntry, executor: QueryExecutor = this.db) {
-    await executor.query(
+  async tao(entry: BanGhiNhatKyHeThong, boThucThi: BoThucThiTruyVan = this.coSoDuLieu) {
+    await boThucThi.truyVan(
       `
         INSERT INTO nhat_ky_he_thong (
           nguoi_thuc_hien,
@@ -32,3 +32,6 @@ export class PostgresAuditLogRepository implements AuditLogRepository {
     );
   }
 }
+
+
+

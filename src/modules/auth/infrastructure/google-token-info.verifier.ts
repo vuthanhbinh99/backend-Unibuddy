@@ -1,10 +1,10 @@
-import { AppError } from "../../../shared/errors/app-error.js";
+import { LoiUngDung } from "../../../shared/errors/app-error.js";
 import type {
-  GoogleIdentityVerifier,
-  VerifiedGoogleIdentity
+  BoKiemTraDanhTinhGoogle,
+  DanhTinhGoogleDaXacMinh
 } from "../application/ports/google-identity-verifier.js";
 
-type GoogleTokenInfoResponse = {
+type PhanHoiThongTinGoogle = {
   sub?: string;
   email?: string;
   email_verified?: boolean | string;
@@ -13,53 +13,56 @@ type GoogleTokenInfoResponse = {
   aud?: string;
 };
 
-export class GoogleTokenInfoVerifier implements GoogleIdentityVerifier {
-  constructor(private readonly allowedClientIds: readonly string[]) {}
+export class BoKiemTraDanhTinhGoogleQuaAPI implements BoKiemTraDanhTinhGoogle {
+  constructor(private readonly cacMaKhachDuocPhep: readonly string[]) {}
 
-  async verifyIdToken(idToken: string): Promise<VerifiedGoogleIdentity> {
+  async xacThucIdToken(idToken: string): Promise<DanhTinhGoogleDaXacMinh> {
     try {
-      const response = await fetch(
+      const phanHoi = await fetch(
         `https://oauth2.googleapis.com/tokeninfo?id_token=${encodeURIComponent(idToken)}`
       );
 
-      if (!response.ok) {
-        throw AppError.unauthorized("Thẻ Google không hợp lệ");
+      if (!phanHoi.ok) {
+        throw LoiUngDung.khongDuocXacThuc("Thẻ Google không hợp lệ");
       }
 
-      const payload = (await response.json()) as GoogleTokenInfoResponse;
+      const duLieu = (await phanHoi.json()) as PhanHoiThongTinGoogle;
 
-      if (!payload.sub || !payload.email) {
-        throw AppError.unauthorized("Thẻ Google không hợp lệ");
+      if (!duLieu.sub || !duLieu.email) {
+        throw LoiUngDung.khongDuocXacThuc("Thẻ Google không hợp lệ");
       }
 
-      const emailVerified =
-        payload.email_verified === true || payload.email_verified === "true";
+      const emailDaXacThuc =
+        duLieu.email_verified === true || duLieu.email_verified === "true";
 
-      if (!emailVerified) {
-        throw AppError.unauthorized("Email Google chưa được xác thực");
+      if (!emailDaXacThuc) {
+        throw LoiUngDung.khongDuocXacThuc("Email Google chưa được xác thực");
       }
 
       if (
-        this.allowedClientIds.length > 0 &&
-        (!payload.aud || !this.allowedClientIds.includes(payload.aud))
+        this.cacMaKhachDuocPhep.length > 0 &&
+        (!duLieu.aud || !this.cacMaKhachDuocPhep.includes(duLieu.aud))
       ) {
-        throw AppError.unauthorized("Thẻ Google không hợp lệ");
+        throw LoiUngDung.khongDuocXacThuc("Thẻ Google không hợp lệ");
       }
 
       return {
-        subject: payload.sub,
-        email: payload.email,
-        emailVerified,
-        fullName: payload.name ?? null,
-        avatarUrl: payload.picture ?? null,
-        audience: payload.aud ?? null
+        subject: duLieu.sub,
+        email: duLieu.email,
+        emailDaXacThuc,
+        fullName: duLieu.name ?? null,
+        avatarUrl: duLieu.picture ?? null,
+        audience: duLieu.aud ?? null
       };
     } catch (error) {
-      if (error instanceof AppError) {
+      if (error instanceof LoiUngDung) {
         throw error;
       }
 
-      throw AppError.unauthorized("Không thể xác minh mã thông báo Google");
+      throw LoiUngDung.khongDuocXacThuc("Không thể xác minh mã thông báo Google");
     }
   }
 }
+
+
+

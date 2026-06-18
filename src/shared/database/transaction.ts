@@ -1,25 +1,28 @@
-import type { Database, QueryExecutor } from "./database.js";
+import type { CoSoDuLieu, BoThucThiTruyVan } from "./database.js";
 
-export interface TransactionManager {
-  withTransaction<T>(callback: (client: QueryExecutor) => Promise<T>): Promise<T>;
+export interface BoQuanLyGiaoDich {
+  thucThiTrongGiaoDich<T>(hamXuLy: (boThucThi: BoThucThiTruyVan) => Promise<T>): Promise<T>;
 }
 
-export class PostgresTransactionManager implements TransactionManager {
-  constructor(private readonly db: Database) {}
+export class BoQuanLyGiaoDichPostgres implements BoQuanLyGiaoDich {
+  constructor(private readonly coSoDuLieu: CoSoDuLieu) {}
 
-  async withTransaction<T>(callback: (client: QueryExecutor) => Promise<T>) {
-    const client = await this.db.connect();
+  async thucThiTrongGiaoDich<T>(hamXuLy: (boThucThi: BoThucThiTruyVan) => Promise<T>) {
+    const ketNoi = await this.coSoDuLieu.ketNoi();
+    const boThucThi: BoThucThiTruyVan = {
+      truyVan: (text, params) => ketNoi.query(text, params as unknown[])
+    };
 
     try {
-      await client.query("BEGIN");
-      const result = await callback(client);
-      await client.query("COMMIT");
-      return result;
+      await ketNoi.query("BEGIN");
+      const ketQua = await hamXuLy(boThucThi);
+      await ketNoi.query("COMMIT");
+      return ketQua;
     } catch (error) {
-      await client.query("ROLLBACK");
+      await ketNoi.query("ROLLBACK");
       throw error;
     } finally {
-      client.release();
+      ketNoi.release();
     }
   }
 }

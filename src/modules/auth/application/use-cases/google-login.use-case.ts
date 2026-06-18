@@ -1,14 +1,14 @@
-import type { AuditLogRepository } from "../../../audit-logs/application/ports/audit-log.repository.js";
-import type { UserRepository } from "../../../users/application/ports/user.repository.js";
-import { type PublicUser, toPublicUser, type User } from "../../../users/domain/user.js";
-import type { TransactionManager } from "../../../../shared/database/transaction.js";
-import { AppError } from "../../../../shared/errors/app-error.js";
-import type { GoogleIdentityVerifier } from "../ports/google-identity-verifier.js";
-import type { PasswordHasher } from "../ports/password-hasher.js";
-import type { SessionRepository } from "../ports/session.repository.js";
-import type { TokenService } from "../ports/token.service.js";
+import type { KhoNhatKyHeThong } from "../../../audit-logs/application/ports/audit-log.repository.js";
+import type { KhoNguoiDung } from "../../../users/application/ports/user.repository.js";
+import { type NguoiDungCongKhai, anhXaNguoiDungCongKhai, type NguoiDung } from "../../../users/domain/user.js";
+import type { BoQuanLyGiaoDich } from "../../../../shared/database/transaction.js";
+import { LoiUngDung } from "../../../../shared/errors/app-error.js";
+import type { BoKiemTraDanhTinhGoogle } from "../ports/google-identity-verifier.js";
+import type { BoMaHoaMatKhau } from "../ports/password-hasher.js";
+import type { KhoPhienDangNhap } from "../ports/session.repository.js";
+import type { DichVuToken } from "../ports/token.service.js";
 
-export type GoogleLoginCommand = {
+export type LenhDangNhapGoogle = {
   idToken: string;
   device?: {
     fcmToken?: string | null;
@@ -18,74 +18,74 @@ export type GoogleLoginCommand = {
   };
 };
 
-export type GoogleLoginResult = {
-  user: PublicUser;
+export type KetQuaDangNhapGoogle = {
+  user: NguoiDungCongKhai;
   accessToken: string;
   refreshToken: string;
   refreshTokenExpiresAt: Date;
 };
 
-type Dependencies = {
-  userRepository: UserRepository;
-  sessionRepository: SessionRepository;
-  auditLogRepository: AuditLogRepository;
-  passwordHasher: PasswordHasher;
-  tokenService: TokenService;
-  transactions: TransactionManager;
-  googleIdentityVerifier: GoogleIdentityVerifier;
-  defaultStudentRoleCode: string;
+type PhuThuoc = {
+  khoNguoiDung: KhoNguoiDung;
+  khoPhienDangNhap: KhoPhienDangNhap;
+  khoNhatKyHeThong: KhoNhatKyHeThong;
+  boMaHoaMatKhau: BoMaHoaMatKhau;
+  dichVuToken: DichVuToken;
+  giaoDich: BoQuanLyGiaoDich;
+  boKiemTraDanhTinhGoogle: BoKiemTraDanhTinhGoogle;
+  maCodeVaiTroSinhVienMacDinh: string;
 };
 
-export class GoogleLoginUseCase {
-  constructor(private readonly deps: Dependencies) {}
+export class XuLyDangNhapGoogle {
+  constructor(private readonly deps: PhuThuoc) {}
 
-  async execute(command: GoogleLoginCommand): Promise<GoogleLoginResult> {
-    const googleIdentity = await this.deps.googleIdentityVerifier.verifyIdToken(command.idToken);
+  async thucThi(command: LenhDangNhapGoogle): Promise<KetQuaDangNhapGoogle> {
+    const danhTinhGoogle = await this.deps.boKiemTraDanhTinhGoogle.xacThucIdToken(command.idToken);
 
     const user =
-      (await this.deps.userRepository.findByEmail(googleIdentity.email)) ??
-      (await this.createStudentFromGoogleIdentity({
-        email: googleIdentity.email,
-        fullName: googleIdentity.fullName,
-        avatarUrl: googleIdentity.avatarUrl,
-        googleSubject: googleIdentity.subject
+      (await this.deps.khoNguoiDung.timTheoEmail(danhTinhGoogle.email)) ??
+      (await this.taoHocVienTuDanhTinhGoogle({
+        email: danhTinhGoogle.email,
+        fullName: danhTinhGoogle.fullName,
+        avatarUrl: danhTinhGoogle.avatarUrl,
+        googleSubject: danhTinhGoogle.subject
       }));
 
     if (user.status === "BI_KHOA") {
-      await this.deps.transactions.withTransaction(async (tx) => {
-        await this.deps.sessionRepository.revokeActiveSessionsByUserId(user.id, tx);
-        await this.deps.auditLogRepository.create(
+      await this.deps.giaoDich.thucThiTrongGiaoDich(async (tx) => {
+        await this.deps.khoPhienDangNhap.thuHoiPhienHoatDongTheoMaNguoiDung(user.id, tx);
+        await this.deps.khoNhatKyHeThong.tao(
           {
             actorId: user.id,
             level: "WARNING",
             action: "AUTH_LOCKED_ACCOUNT_GOOGLE_LOGIN_BLOCKED",
             tableName: "nguoi_dung",
             recordId: user.id,
-            message: "Locked account attempted Google login"
+            message: "Locked account attempted Google dangNhap"
           },
           tx
         );
       });
 
-      throw AppError.locked("Account has been locked");
+      throw LoiUngDung.biKhoa("Account has been biKhoa");
     }
 
-    const accessToken = this.deps.tokenService.signAccessToken({
+    const accessToken = this.deps.dichVuToken.kyTokenTruyCap({
       id: user.id,
       email: user.email,
       roleCode: user.role.code
     });
 
-    const refreshToken = this.deps.tokenService.generateRefreshToken();
-    const refreshTokenHash = this.deps.tokenService.hashRefreshToken(refreshToken);
-    const refreshTokenExpiresAt = this.deps.tokenService.getRefreshTokenExpiresAt();
+    const refreshToken = this.deps.dichVuToken.taoTokenLamMoi();
+    const refreshTokenHash = this.deps.dichVuToken.bamTokenLamMoi(refreshToken);
+    const refreshTokenExpiresAt = this.deps.dichVuToken.layThoiGianHetHanTokenLamMoi();
 
-    await this.deps.transactions.withTransaction(async (tx) => {
+    await this.deps.giaoDich.thucThiTrongGiaoDich(async (tx) => {
       if (command.device?.fcmToken) {
-        await this.deps.sessionRepository.clearFcmToken(command.device.fcmToken, tx);
+        await this.deps.khoPhienDangNhap.lamSachFcmToken(command.device.fcmToken, tx);
       }
 
-      await this.deps.sessionRepository.create(
+      await this.deps.khoPhienDangNhap.tao(
         {
           userId: user.id,
           refreshTokenHash,
@@ -98,16 +98,16 @@ export class GoogleLoginUseCase {
         tx
       );
 
-      await this.deps.auditLogRepository.create(
+      await this.deps.khoNhatKyHeThong.tao(
         {
           actorId: user.id,
           level: "INFO",
           action: "AUTH_GOOGLE_LOGIN_SUCCESS",
           tableName: "phien_dang_nhap",
-          message: "User logged in with Google",
+          message: "NguoiDung logged in with Google",
           metadata: {
-            googleSubject: googleIdentity.subject,
-            audience: googleIdentity.audience
+            googleSubject: danhTinhGoogle.subject,
+            audience: danhTinhGoogle.audience
           }
         },
         tx
@@ -115,60 +115,63 @@ export class GoogleLoginUseCase {
     });
 
     return {
-      user: toPublicUser(user),
+      user: anhXaNguoiDungCongKhai(user),
       accessToken,
       refreshToken,
       refreshTokenExpiresAt
     };
   }
 
-  private async createStudentFromGoogleIdentity(input: {
+  private async taoHocVienTuDanhTinhGoogle(input: {
     email: string;
     fullName: string | null;
     avatarUrl: string | null;
     googleSubject: string;
-  }): Promise<User> {
-    const generatedPasswordHash = await this.deps.passwordHasher.hash(
-      this.deps.tokenService.generateRefreshToken()
+  }): Promise<NguoiDung> {
+    const bamMatKhauSinhRa = await this.deps.boMaHoaMatKhau.bam(
+      this.deps.dichVuToken.taoTokenLamMoi()
     );
 
-    return this.deps.transactions.withTransaction(async (tx) => {
-      const existingUser = await this.deps.userRepository.findByEmail(input.email, tx);
+    return this.deps.giaoDich.thucThiTrongGiaoDich(async (tx) => {
+      const nguoiDungDaTonTai = await this.deps.khoNguoiDung.timTheoEmail(input.email, tx);
 
-      if (existingUser) {
-        return existingUser;
+      if (nguoiDungDaTonTai) {
+        return nguoiDungDaTonTai;
       }
 
-      const createdUser = await this.deps.userRepository.create(
+      const nguoiDungMoi = await this.deps.khoNguoiDung.tao(
         {
           email: input.email,
-          passwordHash: generatedPasswordHash,
+          passwordHash: bamMatKhauSinhRa,
           fullName: input.fullName ?? input.email.split("@")[0],
           avatarUrl: input.avatarUrl,
-          roleCode: this.deps.defaultStudentRoleCode,
+          roleCode: this.deps.maCodeVaiTroSinhVienMacDinh,
           status: "HOAT_DONG"
         },
         tx
       );
 
-      await this.deps.auditLogRepository.create(
+      await this.deps.khoNhatKyHeThong.tao(
         {
-          actorId: createdUser.id,
+          actorId: nguoiDungMoi.id,
           level: "INFO",
           action: "AUTH_GOOGLE_ACCOUNT_CREATED",
           tableName: "nguoi_dung",
-          recordId: createdUser.id,
-          message: "Student account created from Google login",
+          recordId: nguoiDungMoi.id,
+          message: "Student account phanHoiDaTao from Google dangNhap",
           metadata: {
             email: input.email,
             googleSubject: input.googleSubject,
-            roleCode: this.deps.defaultStudentRoleCode
+            roleCode: this.deps.maCodeVaiTroSinhVienMacDinh
           }
         },
         tx
       );
 
-      return createdUser;
+      return nguoiDungMoi;
     });
   }
 }
+
+
+

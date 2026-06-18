@@ -1,4 +1,4 @@
-export type Session = {
+export type PhienDangNhap = {
   id: string;
   userId: string;
   refreshTokenHash: string;
@@ -12,7 +12,7 @@ export type Session = {
   createdAt: Date;
 };
 
-export type CreateSessionData = {
+export type DuLieuTaoPhienDangNhap = {
   userId: string;
   refreshTokenHash: string;
   fcmToken?: string | null;
@@ -21,3 +21,6 @@ export type CreateSessionData = {
   userAgent?: string | null;
   expiresAt: Date;
 };
+
+
+
