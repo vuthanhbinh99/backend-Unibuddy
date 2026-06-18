@@ -14,7 +14,17 @@ const envSchema = z.object({
   REFRESH_TOKEN_EXPIRES_DAYS: z.coerce.number().int().positive().default(30),
   CORS_ORIGINS: z.string().default("*"),
   GOOGLE_CLIENT_IDS: z.string().default(""),
-  DEFAULT_STUDENT_ROLE_CODE: z.string().default("SINH_VIEN")
+  DEFAULT_STUDENT_ROLE_CODE: z.string().default("SINH_VIEN"),
+  SMTP_HOST: z.string().default(""),
+  SMTP_PORT: z.coerce.number().int().positive().default(587),
+  SMTP_SECURE: z
+    .enum(["true", "false"])
+    .default("false")
+    .transform((value) => value === "true"),
+  SMTP_USER: z.string().default(""),
+  SMTP_PASSWORD: z.string().default(""),
+  SMTP_FROM_EMAIL: z.string().default(""),
+  SMTP_FROM_NAME: z.string().default("UniBuddy")
 });
 
 const parsedEnv = envSchema.safeParse(process.env);
@@ -48,6 +58,17 @@ export const cauHinh = {
   auth: {
     googleClientIds,
     maCodeVaiTroSinhVienMacDinh: parsedEnv.data.DEFAULT_STUDENT_ROLE_CODE
+  },
+  email: {
+    smtp: {
+      host: parsedEnv.data.SMTP_HOST,
+      port: parsedEnv.data.SMTP_PORT,
+      secure: parsedEnv.data.SMTP_SECURE,
+      user: parsedEnv.data.SMTP_USER || null,
+      password: parsedEnv.data.SMTP_PASSWORD || null,
+      fromEmail: parsedEnv.data.SMTP_FROM_EMAIL || null,
+      fromName: parsedEnv.data.SMTP_FROM_NAME
+    }
   },
   corsOrigins
 } as const;

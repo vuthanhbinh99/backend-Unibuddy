@@ -19,6 +19,12 @@ import { KhoHocThuatTruongHocPostgres } from "./modules/academic-rules/infrastru
 import { XuLyLayCauHinhHocThuatTruongHoc } from "./modules/academic-rules/application/use-cases/get-academic-rules.use-case.js";
 import { XuLyCapNhatThangDiemTruongHoc } from "./modules/academic-rules/application/use-cases/update-score-scale.use-case.js";
 import { XuLyCapNhatQuyCheHocLucTruongHoc } from "./modules/academic-rules/application/use-cases/update-academic-standing.use-case.js";
+import { KhoBaoCaoTaiLieuPostgres } from "./modules/report-document/infranstructure/postgres-report-document.repository.js";
+import { XuLyDanhSachBaoCaoTaiLieu } from "./modules/report-document/application/use-cases/list-report-documents.use-case.js";
+import { XuLyLayChiTietBaoCaoTaiLieu } from "./modules/report-document/application/use-cases/get-report-document.use-case.js";
+import { XuLyDuyetBaoCaoTaiLieu } from "./modules/report-document/application/use-cases/approve-report-document.use-case.js";
+import { XuLyTuChoiBaoCaoTaiLieu } from "./modules/report-document/application/use-cases/reject-report-document.use-case.js";
+import { DichVuGuiEmailSmtp } from "./shared/email/smtp-email.provider.js";
 import { cauHinh } from "./shared/config/env.js";
 import { KetNoiPostgres } from "./shared/database/postgres.js";
 import { BoQuanLyGiaoDichPostgres } from "./shared/database/transaction.js";
@@ -36,9 +42,11 @@ const taoBoPhuThuoc = () => {
   const khoNhatKyHeThong = new KhoNhatKyHeThongPostgres(coSoDuLieu);
   const khoTruongHoc = new KhoTruongHocPostgres(coSoDuLieu);
   const khoHocThuatTruongHoc = new KhoHocThuatTruongHocPostgres(coSoDuLieu);
+  const khoBaoCaoTaiLieu = new KhoBaoCaoTaiLieuPostgres(coSoDuLieu);
 
   const boMaHoaMatKhau = new BoMaHoaMatKhauBcrypt();
   const dichVuToken = new DichVuTokenJwt();
+  const dichVuGuiEmail = new DichVuGuiEmailSmtp(cauHinh.email.smtp);
   const boKiemTraDanhTinhGoogle = new BoKiemTraDanhTinhGoogleQuaAPI(cauHinh.auth.googleClientIds);
 
   const xuLyDangNhap = new XuLyDangNhap({
@@ -114,6 +122,21 @@ const taoBoPhuThuoc = () => {
     giaoDich
   });
 
+  const xuLyDanhSachBaoCaoTaiLieu = new XuLyDanhSachBaoCaoTaiLieu({ khoBaoCaoTaiLieu });
+  const xuLyLayChiTietBaoCaoTaiLieu = new XuLyLayChiTietBaoCaoTaiLieu({ khoBaoCaoTaiLieu });
+  const xuLyDuyetBaoCaoTaiLieu = new XuLyDuyetBaoCaoTaiLieu({
+    khoBaoCaoTaiLieu,
+    khoNhatKyHeThong,
+    giaoDich,
+    dichVuGuiEmail
+  });
+  const xuLyTuChoiBaoCaoTaiLieu = new XuLyTuChoiBaoCaoTaiLieu({
+    khoBaoCaoTaiLieu,
+    khoNhatKyHeThong,
+    giaoDich,
+    dichVuGuiEmail
+  });
+
   return {
     coSoDuLieu,
     giaoDich,
@@ -122,8 +145,10 @@ const taoBoPhuThuoc = () => {
     khoNhatKyHeThong,
     khoTruongHoc,
     khoHocThuatTruongHoc,
+    khoBaoCaoTaiLieu,
     boMaHoaMatKhau,
     dichVuToken,
+    dichVuGuiEmail,
     boKiemTraDanhTinhGoogle,
     xuLyDangNhap,
     xuLyDangNhapGoogle,
@@ -137,7 +162,11 @@ const taoBoPhuThuoc = () => {
     xuLyXoaTruongHoc,
     xuLyLayCauHinhHocThuatTruongHoc,
     xuLyCapNhatThangDiemTruongHoc,
-    xuLyCapNhatQuyCheHocLucTruongHoc
+    xuLyCapNhatQuyCheHocLucTruongHoc,
+    xuLyDanhSachBaoCaoTaiLieu,
+    xuLyLayChiTietBaoCaoTaiLieu,
+    xuLyDuyetBaoCaoTaiLieu,
+    xuLyTuChoiBaoCaoTaiLieu
   };
 };
 

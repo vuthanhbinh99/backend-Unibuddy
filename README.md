@@ -17,7 +17,10 @@ npm install
 npm run dev
 npm run typecheck
 npm run build
+npm run openapi:sync
 ```
+
+`npm run dev` now keeps `openapi.yaml` in sync with the Express route tree during local development. If you only want to refresh the docs once, run `npm run openapi:sync`.
 
 ## Notes
 

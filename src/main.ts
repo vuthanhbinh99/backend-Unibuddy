@@ -1,8 +1,13 @@
 import { taoUngDung } from "./app.js";
 import { cauHinh } from "./shared/config/env.js";
 import { nhatKy } from "./shared/logger/logger.js";
+import { batDauDongBoOpenApi } from "./shared/openapi/openapi-sync.js";
 
 const ungDung = taoUngDung();
+
+if (cauHinh.nodeEnv !== "production") {
+  batDauDongBoOpenApi();
+}
 
 const mayChu = ungDung.listen(cauHinh.port, () => {
   nhatKy.info(`UniBuddy API listening on port ${cauHinh.port}`);
