@@ -56,8 +56,36 @@ function layTag(duongDan: string) {
     return "Users";
   }
 
+  if (duongDan.startsWith("/admin/users")) {
+    return "Admin Users";
+  }
+
+  if (duongDan.startsWith("/student/documents")) {
+    return "Student Documents";
+  }
+
+  if (duongDan.startsWith("/notes")) {
+    return "Student Notes";
+  }
+
+  if (duongDan.startsWith("/attachments")) {
+    return "Student Note Attachments";
+  }
+
   if (duongDan.startsWith("/admin/reports")) {
     return "Admin Reports";
+  }
+
+  if (duongDan.startsWith("/admin/system-notifications")) {
+    return "Quan Tri Vien Notifications";
+  }
+
+  if (
+    duongDan.startsWith("/admin/storage-usage") ||
+    duongDan.startsWith("/admin/audit-logs") ||
+    duongDan.startsWith("/admin/error-logs")
+  ) {
+    return "Quan Tri Vien System";
   }
 
   if (duongDan.startsWith("/admin/schools") && duongDan.includes("/academic-rules")) {
@@ -94,8 +122,62 @@ function layMoTa(duongDan: string, method: string) {
     return "Logout current session";
   }
 
+  if (duongDan === "/auth/forgot-password") {
+    return "Request forgot password code";
+  }
+
+  if (duongDan === "/auth/forgot-password/verify") {
+    return "Verify forgot password code";
+  }
+
+  if (duongDan === "/auth/forgot-password/reset") {
+    return "Reset password with token";
+  }
+
   if (duongDan === "/users/me") {
     return "Current user profile";
+  }
+
+  if (duongDan === "/student/documents") {
+    return "Upload shared document";
+  }
+
+  if (duongDan === "/notes") {
+    return method === "get" ? "List, search, and filter student notes" : "Create student note";
+  }
+
+  if (duongDan === "/notes/{maGhiChu}") {
+    if (method === "get") {
+      return "Get student note detail";
+    }
+
+    if (method === "put") {
+      return "Update student note";
+    }
+
+    if (method === "delete") {
+      return "Delete student note";
+    }
+  }
+
+  if (duongDan === "/attachments") {
+    return "Attach document to student note";
+  }
+
+  if (duongDan === "/auth/doi-mat-khau-dau") {
+    return "First password change";
+  }
+
+  if (duongDan === "/admin/users") {
+    return method === "get" ? "List users" : "Create admin user";
+  }
+
+  if (duongDan.endsWith("/role") && duongDan.startsWith("/admin/users/")) {
+    return "Update user role";
+  }
+
+  if (duongDan.endsWith("/status") && duongDan.startsWith("/admin/users/")) {
+    return "Update user status";
   }
 
   if (duongDan === "/admin/schools") {
@@ -112,6 +194,26 @@ function layMoTa(duongDan: string, method: string) {
 
   if (duongDan.endsWith("/reject")) {
     return "Reject report document";
+  }
+
+  if (duongDan === "/admin/system-notifications") {
+    return "Send system notification";
+  }
+
+  if (duongDan === "/admin/storage-usage") {
+    return "Get storage usage";
+  }
+
+  if (duongDan === "/admin/audit-logs") {
+    return "List system audit logs";
+  }
+
+  if (duongDan === "/admin/error-logs") {
+    return "List system error logs";
+  }
+
+  if (duongDan === "/admin/error-logs/{logId}") {
+    return "Get system error log detail";
   }
 
   if (duongDan.includes("/academic-rules")) {
@@ -142,7 +244,23 @@ function layMaTrangThai(duongDan: string, method: string) {
     return "201";
   }
 
+  if (duongDan === "/admin/users" && method === "post") {
+    return "201";
+  }
+
   if (duongDan === "/admin/schools" && method === "post") {
+    return "201";
+  }
+
+  if (duongDan === "/student/documents" && method === "post") {
+    return "201";
+  }
+
+  if (duongDan === "/notes" && method === "post") {
+    return "201";
+  }
+
+  if (duongDan === "/attachments" && method === "post") {
     return "201";
   }
 
@@ -169,10 +287,10 @@ function taoDoiDuongDan(duongDan: string) {
   return Array.from(duongDan.matchAll(/\{([A-Za-z0-9_]+)\}/g)).map((match) => match[1]);
 }
 
-function taoKhoiPhanHoi(duongDan: string) {
+function taoKhoiPhanHoi(duongDan: string, method: string) {
   const khoi: string[] = [];
 
-  khoi.push(`        '${layMaTrangThai(duongDan, "get")}':`);
+  khoi.push(`        '${layMaTrangThai(duongDan, method)}':`);
   khoi.push("          description: " + layThongBaoPhanHoi(duongDan));
   khoi.push("          content:");
   khoi.push("            application/json:");
@@ -196,13 +314,12 @@ function taoKhoiPhanHoi(duongDan: string) {
   return khoi;
 }
 
-function taoKhoiTuyenDuong(tuyenDuong: MoTaTuyenDuong) {
+function taoKhoiPhuongThuc(tuyenDuong: MoTaTuyenDuong) {
   const thamSo = taoDoiDuongDan(tuyenDuong.path);
   const coThamSo = thamSo.length > 0;
   const thamSoYaml = thamSo.map((ten) => taoParameterSchema(ten));
 
   const dong: string[] = [];
-  dong.push(`  ${tuyenDuong.path}:`);
   dong.push(`    ${tuyenDuong.method}:`);
 
   if (tuyenDuong.publicRoute) {
@@ -218,7 +335,7 @@ function taoKhoiTuyenDuong(tuyenDuong: MoTaTuyenDuong) {
   }
 
   dong.push("      responses:");
-  dong.push(...taoKhoiPhanHoi(tuyenDuong.path));
+  dong.push(...taoKhoiPhanHoi(tuyenDuong.path, tuyenDuong.method));
 
   return dong.join("\n");
 }
@@ -285,10 +402,6 @@ async function taoDanhSachTuyenDuong() {
   return ketQua;
 }
 
-function taoKhốiTaiLieuChoTuyenDuong(tuyenDuong: MoTaTuyenDuong) {
-  return taoKhoiTuyenDuong(tuyenDuong);
-}
-
 function layCacTuyenDuongThieu(noiDung: string, dsTuyenDuong: MoTaTuyenDuong[]) {
   const groupByPath = new Map<string, MoTaTuyenDuong[]>();
 
@@ -307,7 +420,7 @@ function layCacTuyenDuongThieu(noiDung: string, dsTuyenDuong: MoTaTuyenDuong[]) 
     if (!daTonTaiPath) {
       cacKhoiTuyenDuong.push({
         path: duongDan,
-        content: dsTheoDuongDan.map(taoKhốiTaiLieuChoTuyenDuong).join("\n"),
+        content: [`  ${duongDan}:`, ...dsTheoDuongDan.map(taoKhoiPhuongThuc)].join("\n"),
         isNewPath: true
       });
       continue;
@@ -321,7 +434,7 @@ function layCacTuyenDuongThieu(noiDung: string, dsTuyenDuong: MoTaTuyenDuong[]) 
 
     const cacPhanThieu = dsTheoDuongDan
       .filter((tuyenDuong) => !phanMuc.includes(`    ${tuyenDuong.method}:`))
-      .map((tuyenDuong) => taoKhốiTaiLieuChoTuyenDuong(tuyenDuong).split("\n").slice(2).join("\n"));
+      .map(taoKhoiPhuongThuc);
 
     if (cacPhanThieu.length > 0) {
       cacKhoiTuyenDuong.push({

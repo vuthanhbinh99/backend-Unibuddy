@@ -24,7 +24,12 @@ const envSchema = z.object({
   SMTP_USER: z.string().default(""),
   SMTP_PASSWORD: z.string().default(""),
   SMTP_FROM_EMAIL: z.string().default(""),
-  SMTP_FROM_NAME: z.string().default("UniBuddy")
+  SMTP_FROM_NAME: z.string().default("UniBuddy"),
+  FIREBASE_PROJECT_ID: z.string().default(""),
+  FIREBASE_CLIENT_EMAIL: z.string().default(""),
+  FIREBASE_PRIVATE_KEY: z.string().default(""),
+  FIREBASE_STORAGE_BUCKET: z.string().default(""),
+  FIREBASE_SERVICE_ACCOUNT_JSON: z.string().default("")
 });
 
 const parsedEnv = envSchema.safeParse(process.env);
@@ -70,8 +75,16 @@ export const cauHinh = {
       fromName: parsedEnv.data.SMTP_FROM_NAME
     }
   },
+  firebase: {
+    projectId: parsedEnv.data.FIREBASE_PROJECT_ID || null,
+    clientEmail: parsedEnv.data.FIREBASE_CLIENT_EMAIL || null,
+    privateKey: parsedEnv.data.FIREBASE_PRIVATE_KEY
+      ? parsedEnv.data.FIREBASE_PRIVATE_KEY.replace(/\\n/g, "\n")
+      : null,
+    storageBucket: parsedEnv.data.FIREBASE_STORAGE_BUCKET || null,
+    serviceAccountJson: parsedEnv.data.FIREBASE_SERVICE_ACCOUNT_JSON || null
+  },
   corsOrigins
 } as const;
-
 
 
