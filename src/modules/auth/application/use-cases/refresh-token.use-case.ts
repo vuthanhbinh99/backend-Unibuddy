@@ -67,6 +67,10 @@ export class XuLyLamMoiToken {
       throw LoiUngDung.biKhoa("Tài khoản đã bị khóa và không thể làm mới token");
     }
 
+    if (user.status === "CHO_DOI_MAT_KHAU") {
+      throw LoiUngDung.khongCoQuyen("Tài khoản phải đổi mật khẩu trước khi làm mới token");
+    }
+
     const accessToken = this.deps.dichVuToken.kyTokenTruyCap({
       id: user.id,
       email: user.email,

@@ -70,6 +70,10 @@ export class XuLyDangNhapGoogle {
       throw LoiUngDung.biKhoa("Account has been biKhoa");
     }
 
+    if (user.status === "CHO_DOI_MAT_KHAU") {
+      throw LoiUngDung.khongCoQuyen("Tài khoản phải đổi mật khẩu trước khi tiếp tục");
+    }
+
     const accessToken = this.deps.dichVuToken.kyTokenTruyCap({
       id: user.id,
       email: user.email,
@@ -146,7 +150,8 @@ export class XuLyDangNhapGoogle {
           fullName: input.fullName ?? input.email.split("@")[0],
           avatarUrl: input.avatarUrl,
           roleCode: this.deps.maCodeVaiTroSinhVienMacDinh,
-          status: "HOAT_DONG"
+          status: "HOAT_DONG",
+          temporaryPasswordCreatedAt: null
         },
         tx
       );

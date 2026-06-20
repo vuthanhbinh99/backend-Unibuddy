@@ -10,6 +10,7 @@ import type { DichVuToken } from "../ports/token.service.js";
 export type LenhDangNhap = {
   email: string;
   password: string;
+  newPassword?: string;
   device?: {
     fcmToken?: string | null;
     deviceType?: string | null;
@@ -18,7 +19,21 @@ export type LenhDangNhap = {
   };
 };
 
-export type KetQuaDangNhap = {
+export type KetQuaDangNhap =
+  | {
+      requiresPasswordChange: true;
+      user: NguoiDungCongKhai;
+      temporaryPasswordExpiresAt: Date | null;
+    }
+  | {
+      requiresPasswordChange?: false;
+      user: NguoiDungCongKhai;
+      accessToken: string;
+      refreshToken: string;
+      refreshTokenExpiresAt: Date;
+    };
+
+type KetQuaDangNhapThanhCong = {
   user: NguoiDungCongKhai;
   accessToken: string;
   refreshToken: string;
@@ -86,6 +101,111 @@ export class XuLyDangNhap {
       });
 
       throw LoiUngDung.biKhoa("Tài khoản đã bị khóa và không thể đăng nhập");
+    }
+
+    if (user.status === "CHO_DOI_MAT_KHAU") {
+      const tempPasswordIssuedAt = user.temporaryPasswordCreatedAt;
+      const now = new Date();
+      const hetHan = !tempPasswordIssuedAt || now.getTime() - tempPasswordIssuedAt.getTime() > 24 * 60 * 60 * 1000;
+
+      if (hetHan) {
+        await this.deps.giaoDich.thucThiTrongGiaoDich(async (tx) => {
+          await this.deps.khoPhienDangNhap.thuHoiPhienHoatDongTheoMaNguoiDung(user.id, tx);
+          await this.deps.khoNguoiDung.capNhatTrangThai(
+            {
+              userId: user.id,
+              status: "BI_KHOA",
+              temporaryPasswordCreatedAt: null
+            },
+            tx
+          );
+          await this.deps.khoNhatKyHeThong.tao(
+            {
+              actorId: user.id,
+              level: "WARNING",
+              action: "AUTH_TEMP_PASSWORD_EXPIRED",
+              tableName: "nguoi_dung",
+              recordId: user.id,
+              message: "Mật khẩu tạm đã hết hạn, tài khoản bị khóa"
+            },
+            tx
+          );
+        });
+
+        throw LoiUngDung.biKhoa("Mật khẩu tạm đã hết hạn, tài khoản đã bị khóa");
+      }
+
+      if (!command.newPassword) {
+        return {
+          requiresPasswordChange: true,
+          user: anhXaNguoiDungCongKhai(user),
+          temporaryPasswordExpiresAt: tempPasswordIssuedAt
+        };
+      }
+
+      const passwordHashMoi = await this.deps.boMaHoaMatKhau.bam(command.newPassword);
+      const accessToken = this.deps.dichVuToken.kyTokenTruyCap({
+        id: user.id,
+        email: user.email,
+        roleCode: user.role.code
+      });
+      const refreshToken = this.deps.dichVuToken.taoTokenLamMoi();
+      const refreshTokenHash = this.deps.dichVuToken.bamTokenLamMoi(refreshToken);
+      const refreshTokenExpiresAt = this.deps.dichVuToken.layThoiGianHetHanTokenLamMoi();
+
+      await this.deps.giaoDich.thucThiTrongGiaoDich(async (tx) => {
+        await this.deps.khoPhienDangNhap.thuHoiPhienHoatDongTheoMaNguoiDung(user.id, tx);
+        await this.deps.khoNguoiDung.capNhatMatKhau(
+          {
+            userId: user.id,
+            passwordHash: passwordHashMoi,
+            status: "HOAT_DONG",
+            temporaryPasswordCreatedAt: null
+          },
+          tx
+        );
+
+        if (command.device?.fcmToken) {
+          await this.deps.khoPhienDangNhap.lamSachFcmToken(command.device.fcmToken, tx);
+        }
+
+        await this.deps.khoPhienDangNhap.tao(
+          {
+            userId: user.id,
+            refreshTokenHash,
+            fcmToken: command.device?.fcmToken ?? null,
+            deviceType: command.device?.deviceType ?? null,
+            ipAddress: command.device?.ipAddress ?? null,
+            userAgent: command.device?.userAgent ?? null,
+            expiresAt: refreshTokenExpiresAt
+          },
+          tx
+        );
+
+        await this.deps.khoNhatKyHeThong.tao(
+          {
+            actorId: user.id,
+            level: "INFO",
+            action: "AUTH_FIRST_PASSWORD_CHANGE_SUCCESS",
+            tableName: "nguoi_dung",
+            recordId: user.id,
+            message: "Người dùng đã đổi mật khẩu đầu thành công"
+          },
+          tx
+        );
+      });
+
+      return {
+        user: anhXaNguoiDungCongKhai({
+          ...user,
+          passwordHash: passwordHashMoi,
+          status: "HOAT_DONG",
+          temporaryPasswordCreatedAt: null
+        }),
+        accessToken,
+        refreshToken,
+        refreshTokenExpiresAt
+      };
     }
 
     const accessToken = this.deps.dichVuToken.kyTokenTruyCap({

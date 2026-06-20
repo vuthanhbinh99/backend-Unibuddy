@@ -13,18 +13,25 @@ export class BoTrungGianXacThuc {
     next();
   });
 
+  yeuCauXacThucDoiMatKhauDau = xuLyBatDongBo(async (req: Request, _res: Response, next: NextFunction) => {
+    await this.xacThucYeuCau(req, true);
+
+    next();
+  });
+
   yeuCauVaiTro = (allowedRoleCodes: readonly string[]) =>
     xuLyBatDongBo(async (req: Request, _res: Response, next: NextFunction) => {
       const authUser = await this.xacThucYeuCau(req);
 
       if (!allowedRoleCodes.includes(authUser.roleCode)) {
+        await this.ghiNhatKyTuChoiTruyCap(req, authUser, allowedRoleCodes);
         throw LoiUngDung.khongCoQuyen("Không có quyền truy cập");
       }
 
       next();
     });
 
-  private async xacThucYeuCau(req: Request): Promise<NguoiDungXacThuc> {
+  private async xacThucYeuCau(req: Request, choPhepDoiMatKhauDau = false): Promise<NguoiDungXacThuc> {
     const authorization = req.header("authorization");
 
     if (!authorization?.startsWith("Bearer ")) {
@@ -43,6 +50,10 @@ export class BoTrungGianXacThuc {
       throw LoiUngDung.biKhoa("Tài khoản đã bị khóa");
     }
 
+    if (user.status === "CHO_DOI_MAT_KHAU" && !choPhepDoiMatKhauDau) {
+      throw LoiUngDung.khongCoQuyen("Tài khoản phải đổi mật khẩu trước khi tiếp tục");
+    }
+
     const nguoiDungXacThuc: NguoiDungXacThuc = {
       id: user.id,
       email: user.email,
@@ -52,6 +63,25 @@ export class BoTrungGianXacThuc {
     req.user = nguoiDungXacThuc;
 
     return nguoiDungXacThuc;
+  }
+
+  private async ghiNhatKyTuChoiTruyCap(
+    req: Request,
+    authUser: NguoiDungXacThuc,
+    allowedRoleCodes: readonly string[]
+  ) {
+    await this.boPhuThuoc.khoNhatKyHeThong.tao({
+      actorId: authUser.id,
+      level: "WARNING",
+      action: "AUTH_ROLE_ACCESS_DENIED",
+      message: "Nguoi dung khong co quyen truy cap chuc nang",
+      metadata: {
+        method: req.method,
+        path: req.originalUrl,
+        roleCode: authUser.roleCode,
+        allowedRoleCodes
+      }
+    });
   }
 }
 
