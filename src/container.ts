@@ -40,6 +40,23 @@ import { XuLyLayChiTietGhiChu } from "./modules/notes/application/use-cases/get-
 import { XuLyDanhSachGhiChu } from "./modules/notes/application/use-cases/list-notes.use-case.js";
 import { XuLyCapNhatGhiChu } from "./modules/notes/application/use-cases/update-note.use-case.js";
 import { KhoGhiChuPostgres } from "./modules/notes/infrastructure/postgres-note.repository.js";
+import { DichVuGhiLogLoiThoiKhoaBieu } from "./modules/schedules/application/services/schedule-error-logger.service.js";
+import { DichVuMappingImportThoiKhoaBieu } from "./modules/schedules/application/services/schedule-import-mapper.service.js";
+import { XuLyXacNhanImportThoiKhoaBieu } from "./modules/schedules/application/use-cases/confirm-schedule-import.use-case.js";
+import { XuLyTaoLichHoc } from "./modules/schedules/application/use-cases/create-schedule.use-case.js";
+import { XuLyXoaLichHoc } from "./modules/schedules/application/use-cases/delete-schedule.use-case.js";
+import { XuLyTrichXuatHeaderImportThoiKhoaBieu } from "./modules/schedules/application/use-cases/extract-schedule-import-headers.use-case.js";
+import { XuLyDanhSachLichHoc } from "./modules/schedules/application/use-cases/list-schedules.use-case.js";
+import { XuLyPreviewImportThoiKhoaBieu } from "./modules/schedules/application/use-cases/preview-schedule-import.use-case.js";
+import { XuLyCapNhatLichHoc } from "./modules/schedules/application/use-cases/update-schedule.use-case.js";
+import { KhoLichHocPostgres } from "./modules/schedules/infrastructure/postgres-schedule.repository.js";
+import { BoDocTepImportThoiKhoaBieuXlsxPdf } from "./modules/schedules/infrastructure/xlsx-pdf-schedule-import-parser.js";
+import { DichVuGhiLogLoiNhomHocTap } from "./modules/study-groups/application/services/study-group-error-logger.service.js";
+import { XuLyTaoNhomHocTap } from "./modules/study-groups/application/use-cases/create-study-group.use-case.js";
+import { XuLyXoaNhomHocTap } from "./modules/study-groups/application/use-cases/delete-study-group.use-case.js";
+import { XuLyThamGiaNhomHocTap } from "./modules/study-groups/application/use-cases/join-study-group.use-case.js";
+import { XuLyRoiNhomHocTap } from "./modules/study-groups/application/use-cases/leave-study-group.use-case.js";
+import { KhoNhomHocTapPostgres } from "./modules/study-groups/infrastructure/postgres-study-group.repository.js";
 import { KhoBaoCaoTaiLieuPostgres } from "./modules/report-document/infranstructure/postgres-report-document.repository.js";
 import { XuLyDanhSachBaoCaoTaiLieu } from "./modules/report-document/application/use-cases/list-report-documents.use-case.js";
 import { XuLyLayChiTietBaoCaoTaiLieu } from "./modules/report-document/application/use-cases/get-report-document.use-case.js";
@@ -75,6 +92,8 @@ const taoBoPhuThuoc = () => {
   const khoHocThuatTruongHoc = new KhoHocThuatTruongHocPostgres(coSoDuLieu);
   const khoTaiLieu = new KhoTaiLieuPostgres(coSoDuLieu);
   const khoGhiChu = new KhoGhiChuPostgres(coSoDuLieu);
+  const khoLichHoc = new KhoLichHocPostgres(coSoDuLieu);
+  const khoNhomHocTap = new KhoNhomHocTapPostgres(coSoDuLieu);
   const khoBaoCaoTaiLieu = new KhoBaoCaoTaiLieuPostgres(coSoDuLieu);
   const khoThongBaoHeThong = new KhoThongBaoHeThongPostgres(coSoDuLieu);
   const khoDungLuongHeThong = new KhoDungLuongHeThongPostgres(coSoDuLieu);
@@ -211,6 +230,10 @@ const taoBoPhuThuoc = () => {
   });
   const dichVuTepDinhKemGhiChu = new DichVuTepDinhKemGhiChu({ khoGhiChu });
   const dichVuGhiLogLoiGhiChu = new DichVuGhiLogLoiGhiChu({ khoNhatKyHeThong });
+  const dichVuGhiLogLoiThoiKhoaBieu = new DichVuGhiLogLoiThoiKhoaBieu({ khoNhatKyHeThong });
+  const dichVuMappingImportThoiKhoaBieu = new DichVuMappingImportThoiKhoaBieu();
+  const boDocTepImportThoiKhoaBieu = new BoDocTepImportThoiKhoaBieuXlsxPdf();
+  const dichVuGhiLogLoiNhomHocTap = new DichVuGhiLogLoiNhomHocTap({ khoNhatKyHeThong });
   const phuThuocGhiChuCoBan = {
     khoGhiChu,
     khoNhatKyHeThong,
@@ -240,6 +263,44 @@ const taoBoPhuThuoc = () => {
     dichVuQuyenGhiChu,
     dichVuTepDinhKemGhiChu,
     dichVuGhiLogLoiGhiChu
+  });
+
+  const phuThuocLichHocCoBan = {
+    khoLichHoc,
+    khoNhatKyHeThong,
+    giaoDich,
+    dichVuGhiLogLoiThoiKhoaBieu
+  };
+  const xuLyDanhSachLichHoc = new XuLyDanhSachLichHoc({ khoLichHoc });
+  const xuLyTaoLichHoc = new XuLyTaoLichHoc(phuThuocLichHocCoBan);
+  const xuLyCapNhatLichHoc = new XuLyCapNhatLichHoc(phuThuocLichHocCoBan);
+  const xuLyXoaLichHoc = new XuLyXoaLichHoc(phuThuocLichHocCoBan);
+  const xuLyTrichXuatHeaderImportThoiKhoaBieu = new XuLyTrichXuatHeaderImportThoiKhoaBieu({
+    boDocTepImportThoiKhoaBieu,
+    dichVuGhiLogLoiThoiKhoaBieu
+  });
+  const xuLyPreviewImportThoiKhoaBieu = new XuLyPreviewImportThoiKhoaBieu({
+    khoLichHoc,
+    dichVuMappingImportThoiKhoaBieu
+  });
+  const xuLyXacNhanImportThoiKhoaBieu = new XuLyXacNhanImportThoiKhoaBieu(phuThuocLichHocCoBan);
+
+  const phuThuocNhomHocTapCoBan = {
+    khoNhomHocTap,
+    khoNhatKyHeThong,
+    giaoDich,
+    dichVuGhiLogLoiNhomHocTap
+  };
+  const xuLyTaoNhomHocTap = new XuLyTaoNhomHocTap({
+    ...phuThuocNhomHocTapCoBan,
+    khoLichHoc
+  });
+  const xuLyThamGiaNhomHocTap = new XuLyThamGiaNhomHocTap(phuThuocNhomHocTapCoBan);
+  const xuLyRoiNhomHocTap = new XuLyRoiNhomHocTap(phuThuocNhomHocTapCoBan);
+  const xuLyXoaNhomHocTap = new XuLyXoaNhomHocTap({
+    ...phuThuocNhomHocTapCoBan,
+    khoNguoiDung,
+    boMaHoaMatKhau
   });
 
   const xuLyDanhSachBaoCaoTaiLieu = new XuLyDanhSachBaoCaoTaiLieu({ khoBaoCaoTaiLieu });
@@ -282,6 +343,8 @@ const taoBoPhuThuoc = () => {
     khoHocThuatTruongHoc,
     khoTaiLieu,
     khoGhiChu,
+    khoLichHoc,
+    khoNhomHocTap,
     khoBaoCaoTaiLieu,
     khoThongBaoHeThong,
     khoDungLuongHeThong,
@@ -319,6 +382,17 @@ const taoBoPhuThuoc = () => {
     xuLyCapNhatGhiChu,
     xuLyXoaGhiChu,
     xuLyDinhKemTaiLieuGhiChu,
+    xuLyDanhSachLichHoc,
+    xuLyTaoLichHoc,
+    xuLyCapNhatLichHoc,
+    xuLyXoaLichHoc,
+    xuLyTrichXuatHeaderImportThoiKhoaBieu,
+    xuLyPreviewImportThoiKhoaBieu,
+    xuLyXacNhanImportThoiKhoaBieu,
+    xuLyTaoNhomHocTap,
+    xuLyThamGiaNhomHocTap,
+    xuLyRoiNhomHocTap,
+    xuLyXoaNhomHocTap,
     xuLyDanhSachBaoCaoTaiLieu,
     xuLyLayChiTietBaoCaoTaiLieu,
     xuLyDuyetBaoCaoTaiLieu,

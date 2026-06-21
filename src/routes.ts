@@ -6,7 +6,9 @@ import { xayDungTuyenDuongSucKhoe } from "./modules/health/health.routes.js";
 import { xayDungTuyenDuongDinhKemGhiChu } from "./modules/notes/presentation/attachment.routes.js";
 import { xayDungTuyenDuongGhiChu } from "./modules/notes/presentation/note.routes.js";
 import { xayDungTuyenDuongBaoCaoTaiLieu } from "./modules/report-document/presentation/report-document.routes.js";
+import { xayDungTuyenDuongLichHoc } from "./modules/schedules/presentation/schedule.routes.js";
 import { xayDungTuyenDuongTruongHoc } from "./modules/schools/presentation/school.routes.js";
+import { xayDungTuyenDuongNhomHocTap } from "./modules/study-groups/presentation/study-group.routes.js";
 import { xayDungTuyenDuongThongBaoHeThong } from "./modules/notifications/presentation/system-notification.routes.js";
 import { xayDungTuyenDuongQuanTriHeThong } from "./modules/system-admin/presentation/system-admin.routes.js";
 import { xayDungTuyenDuongNguoiDungQuanTri } from "./modules/users/presentation/admin-user.routes.js";
@@ -21,6 +23,8 @@ export const xayDungTuyenDuong = () => {
   router.use("/users", xayDungTuyenDuongNguoiDung(boPhuThuoc));
   router.use("/notes", xayDungTuyenDuongGhiChu(boPhuThuoc));
   router.use("/attachments", xayDungTuyenDuongDinhKemGhiChu(boPhuThuoc));
+  router.use("/schedules", xayDungTuyenDuongLichHoc(boPhuThuoc));
+  router.use("/study-groups", xayDungTuyenDuongNhomHocTap(boPhuThuoc));
   router.use("/student/documents", xayDungTuyenDuongTaiLieuSinhVien(boPhuThuoc));
   router.use("/admin/users", xayDungTuyenDuongNguoiDungQuanTri(boPhuThuoc));
   router.use("/admin/schools", xayDungTuyenDuongTruongHoc(boPhuThuoc));

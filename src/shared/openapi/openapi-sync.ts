@@ -72,6 +72,14 @@ function layTag(duongDan: string) {
     return "Student Note Attachments";
   }
 
+  if (duongDan.startsWith("/schedules")) {
+    return "Student Schedules";
+  }
+
+  if (duongDan.startsWith("/study-groups")) {
+    return "Student Study Groups";
+  }
+
   if (duongDan.startsWith("/admin/reports")) {
     return "Admin Reports";
   }
@@ -162,6 +170,48 @@ function layMoTa(duongDan: string, method: string) {
 
   if (duongDan === "/attachments") {
     return "Attach document to student note";
+  }
+
+  if (duongDan === "/schedules") {
+    return method === "get" ? "View student timetable" : "Create student schedule item";
+  }
+
+  if (duongDan === "/schedules/import/headers") {
+    return "Extract timetable import headers";
+  }
+
+  if (duongDan === "/schedules/import/preview") {
+    return "Preview automatic timetable import";
+  }
+
+  if (duongDan === "/schedules/import/confirm") {
+    return "Confirm automatic timetable import";
+  }
+
+  if (duongDan === "/schedules/{maLichHoc}") {
+    if (method === "put") {
+      return "Update student schedule item";
+    }
+
+    if (method === "delete") {
+      return "Delete student schedule item";
+    }
+  }
+
+  if (duongDan === "/study-groups") {
+    return method === "post" ? "Create study group" : "Study groups";
+  }
+
+  if (duongDan === "/study-groups/join") {
+    return "Join study group";
+  }
+
+  if (duongDan === "/study-groups/{maNhom}/leave") {
+    return "Leave study group";
+  }
+
+  if (duongDan === "/study-groups/{maNhom}" && method === "delete") {
+    return "Delete study group";
   }
 
   if (duongDan === "/auth/doi-mat-khau-dau") {
@@ -261,6 +311,14 @@ function layMaTrangThai(duongDan: string, method: string) {
   }
 
   if (duongDan === "/attachments" && method === "post") {
+    return "201";
+  }
+
+  if (duongDan === "/schedules" && method === "post") {
+    return "201";
+  }
+
+  if ((duongDan === "/study-groups" || duongDan === "/study-groups/join") && method === "post") {
     return "201";
   }
 
