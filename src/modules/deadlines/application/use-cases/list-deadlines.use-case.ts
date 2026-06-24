@@ -57,7 +57,7 @@ export class XuLyDanhSachDeadline {
         message:
           items.length > 0
             ? "Sinh viên xem danh sách bài tập - Trạng thái: Có dữ liệu"
-            : "Sinh viên truy cập danh sách deadline - Trạng thái: Trống (0 bản ghi)",
+            : "Sinh viên truy cập danh sách deadline - Trạng thái: Trống ",
         metadata: {
           total: items.length,
           maMonHoc: command.maMonHoc ?? null,

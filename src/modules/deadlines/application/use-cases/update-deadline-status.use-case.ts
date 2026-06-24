@@ -58,7 +58,7 @@ export class XuLyCapNhatTrangThaiDeadline {
             action: "DEADLINE_STATUS_UPDATE_NOT_FOUND_DURING_TRANSACTION",
             tableName: "deadline",
             recordId: command.maDeadline,
-            message: "Sinh viên cập nhật trạng thái deadline thất bại vì bản ghi không còn tồn tại trong transaction",
+            message: "Sinh viên cập nhật trạng thái deadline thất bại vì bản ghi không còn tồn tại trong giao dịch",
             metadata: {
               maDeadline: command.maDeadline,
               trangThaiCu: deadlineHienTai.trangThai,

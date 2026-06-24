@@ -102,7 +102,7 @@ export class XuLyTaoDeadline {
         actorId: command.actorId,
         action: "DEADLINE_CREATE_FAILED",
         tableName: "deadline",
-        message: "Lỗi Database Transaction khi tạo deadline",
+        message: "Lỗi giao dịch Cơ sở dữ liệu khi tạo deadline",
         error,
         metadata: {
           maMonHoc: duLieuHopLe.maMonHoc,
@@ -144,7 +144,7 @@ export class XuLyTaoDeadline {
         actorId: command.actorId,
         action: "DEADLINE_CREATE_VALIDATION_FAILED",
         tableName: "deadline",
-        message: "Yêu cầu thêm deadline thất bại do lỗi Validation",
+        message: "Yêu cầu thêm deadline thất bại do lỗi dữ liệu đầu vào",
         metadata: {
           errors: loi,
           hasTitle: Boolean(tieuDe),

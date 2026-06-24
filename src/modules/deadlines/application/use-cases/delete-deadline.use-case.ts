@@ -48,7 +48,7 @@ export class XuLyXoaDeadline {
             action: "DEADLINE_DELETE_NOT_FOUND_DURING_TRANSACTION",
             tableName: "deadline",
             recordId: command.maDeadline,
-            message: "Sinh viên xóa deadline thất bại vì bản ghi không còn tồn tại trong transaction",
+            message: "Sinh viên xóa deadline thất bại vì bản ghi không còn tồn tại trong giao dịch",
             metadata: {
               maDeadline: command.maDeadline,
               soNhacNhoDaXoa
