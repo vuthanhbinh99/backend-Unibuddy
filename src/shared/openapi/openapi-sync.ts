@@ -72,6 +72,26 @@ function layTag(duongDan: string) {
     return "Student Note Attachments";
   }
 
+  if (duongDan.startsWith("/courses")) {
+    return "Student Courses";
+  }
+
+  if (duongDan.startsWith("/deadlines")) {
+    return "Student Deadlines";
+  }
+
+  if (duongDan.startsWith("/kanban")) {
+    return "Student Kanban";
+  }
+
+  if (duongDan.startsWith("/flashcard-decks") || duongDan.startsWith("/flashcards")) {
+    return "Student Flashcards";
+  }
+
+  if (duongDan.startsWith("/diem-so")) {
+    return "Student Grades";
+  }
+
   if (duongDan.startsWith("/schedules")) {
     return "Student Schedules";
   }
@@ -170,6 +190,114 @@ function layMoTa(duongDan: string, method: string) {
 
   if (duongDan === "/attachments") {
     return "Attach document to student note";
+  }
+
+  if (duongDan === "/courses") {
+    return method === "get" ? "List student courses" : "Create student course";
+  }
+
+  if (duongDan === "/courses/semesters") {
+    return "Create student semester";
+  }
+
+  if (duongDan === "/courses/semesters/{maHocKy}/courses") {
+    return "Create student course in semester";
+  }
+
+  if (duongDan === "/courses/{maMonHoc}") {
+    if (method === "get") {
+      return "Get student course detail";
+    }
+
+    if (method === "put") {
+      return "Update student course";
+    }
+
+    if (method === "delete") {
+      return "Delete student course";
+    }
+  }
+
+  if (duongDan === "/deadlines") {
+    return method === "get" ? "List student deadlines" : "Create student deadline";
+  }
+
+  if (duongDan === "/deadlines/{maDeadline}/status") {
+    return "Update student deadline status";
+  }
+
+  if (duongDan === "/deadlines/{maDeadline}" && method === "delete") {
+    return "Delete student deadline";
+  }
+
+  if (duongDan === "/kanban/groups/{maNhom}/board") {
+    return "View study group Kanban board";
+  }
+
+  if (duongDan === "/kanban/groups/{maNhom}/chat-link") {
+    return "Get study group chat link";
+  }
+
+  if (duongDan === "/kanban/tasks") {
+    return "Create Kanban task";
+  }
+
+  if (duongDan === "/kanban/tasks/{maCongViec}") {
+    if (method === "put") {
+      return "Update Kanban task details";
+    }
+
+    if (method === "delete") {
+      return "Delete Kanban task";
+    }
+  }
+
+  if (duongDan === "/kanban/tasks/{maCongViec}/status") {
+    return "Update Kanban task status";
+  }
+
+  if (duongDan === "/kanban/tasks/{maCongViec}/assignee") {
+    return "Assign Kanban task";
+  }
+
+  if (duongDan === "/kanban/tasks/{maCongViec}/comments") {
+    return "Comment on Kanban task";
+  }
+
+  if (duongDan === "/kanban/tasks/{maCongViec}/comments/{maBinhLuan}" && method === "delete") {
+    return "Revoke Kanban task comment";
+  }
+
+  if (duongDan === "/diem-so/bang-diem") {
+    return "View student transcript and GPA";
+  }
+
+  if (duongDan === "/diem-so") {
+    return "Create student grade component";
+  }
+
+  if (duongDan === "/diem-so/trong-so") {
+    return "Configure student grade weights";
+  }
+
+  if (duongDan === "/diem-so/du-phong") {
+    return "Project target GPA";
+  }
+
+  if (duongDan === "/diem-so/import/headers") {
+    return "Extract grade import headers";
+  }
+
+  if (duongDan === "/diem-so/import/preview") {
+    return "Preview automatic grade import";
+  }
+
+  if (duongDan === "/diem-so/import/confirm") {
+    return "Confirm automatic grade import";
+  }
+
+  if (duongDan === "/diem-so/{maThanhPhan}" && method === "put") {
+    return "Update student grade component";
   }
 
   if (duongDan === "/schedules") {
@@ -314,7 +442,34 @@ function layMaTrangThai(duongDan: string, method: string) {
     return "201";
   }
 
+  if (duongDan === "/courses" && method === "post") {
+    return "201";
+  }
+
+  if (
+    (duongDan === "/courses/semesters" || duongDan === "/courses/semesters/{maHocKy}/courses") &&
+    method === "post"
+  ) {
+    return "201";
+  }
+
   if (duongDan === "/schedules" && method === "post") {
+    return "201";
+  }
+
+  if (duongDan === "/deadlines" && method === "post") {
+    return "201";
+  }
+
+  if (duongDan === "/kanban/tasks" && method === "post") {
+    return "201";
+  }
+
+  if (duongDan === "/kanban/tasks/{maCongViec}/comments" && method === "post") {
+    return "201";
+  }
+
+  if (duongDan === "/diem-so" && method === "post") {
     return "201";
   }
 

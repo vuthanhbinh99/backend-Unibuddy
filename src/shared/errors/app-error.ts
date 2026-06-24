@@ -31,6 +31,10 @@ export class LoiUngDung extends Error {
     return new LoiUngDung(409, CacLoi.CONFLICT, message, chiTiet);
   }
 
+  static khongTheXuLy(message: string, chiTiet?: unknown) {
+    return new LoiUngDung(422, CacLoi.UNPROCESSABLE_ENTITY, message, chiTiet);
+  }
+
   static biKhoa(message = "Account is locked") {
     return new LoiUngDung(423, CacLoi.ACCOUNT_LOCKED, message);
   }
