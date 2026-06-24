@@ -31,7 +31,7 @@ export class XuLyCapNhatHocPhan {
         action: "COURSE_UPDATE_NOT_FOUND",
         tableName: "mon_hoc",
         recordId: command.maMonHoc,
-        message: "Sinh vien cap nhat mon hoc that bai vi khong tim thay mon hoc",
+        message: "Sinh viên cập nhật môn học thất bại vì môn học không tồn tại hoặc không thuộc sinh viên",
         metadata: {
           maMonHoc: command.maMonHoc
         }
@@ -54,7 +54,7 @@ export class XuLyCapNhatHocPhan {
         action: "COURSE_UPDATE_SEMESTER_NOT_FOUND",
         tableName: "hoc_ky",
         recordId: data.maHocKy,
-        message: "Sinh vien cap nhat mon hoc that bai vi hoc ky moi khong ton tai hoac khong thuoc sinh vien",
+        message: "Sinh viên cập nhật môn học thất bại vì học kỳ mới không tồn tại hoặc không thuộc sinh viên",
         metadata: {
           maMonHoc: command.maMonHoc,
           maHocKy: data.maHocKy
@@ -77,7 +77,7 @@ export class XuLyCapNhatHocPhan {
         action: "COURSE_UPDATE_DUPLICATE",
         tableName: "mon_hoc",
         recordId: command.maMonHoc,
-        message: "Sinh vien cap nhat mon hoc that bai vi ten mon hoac ma mon bi trung trong hoc ky",
+        message: "Sinh viên cập nhật môn học thất bại vì tên môn hoặc mã môn bị trùng trong học kỳ",
         metadata: {
           maMonHoc: command.maMonHoc,
           maHocKy: data.maHocKy,
@@ -99,7 +99,7 @@ export class XuLyCapNhatHocPhan {
             action: "COURSE_UPDATE_NOT_FOUND_DURING_TRANSACTION",
             tableName: "mon_hoc",
             recordId: command.maMonHoc,
-            message: "Sinh vien cap nhat mon hoc that bai vi ban ghi khong con ton tai trong transaction",
+            message: "Sinh viên cập nhật môn học thất bại vì bản ghi không còn tồn tại trong giao dịch",
             metadata: {
               maMonHoc: command.maMonHoc,
               maHocKy: data.maHocKy
@@ -148,7 +148,7 @@ export class XuLyCapNhatHocPhan {
         action: "COURSE_UPDATE_FAILED",
         tableName: "mon_hoc",
         recordId: command.maMonHoc,
-        message: "Lỗi cập nhật thông tin môn học vào database",
+        message: "Lỗi cập nhật thông tin môn học vào Cơ sở dữ liệu",
         error,
         metadata: {
           maMonHoc: command.maMonHoc,

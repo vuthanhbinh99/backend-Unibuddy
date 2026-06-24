@@ -37,7 +37,7 @@ export class XuLyTaoHocPhan {
         action: "COURSE_CREATE_SEMESTER_NOT_FOUND",
         tableName: "hoc_ky",
         recordId: data.maHocKy,
-        message: "Sinh vien them mon hoc that bai vi hoc ky khong ton tai hoac khong thuoc sinh vien",
+        message: "Sinh viên thêm môn học thất bại vì học kỳ không tồn tại",
         metadata: {
           maHocKy: data.maHocKy,
           maMon: data.maMon,
@@ -60,7 +60,7 @@ export class XuLyTaoHocPhan {
         action: "COURSE_CREATE_DUPLICATE",
         tableName: "mon_hoc",
         recordId: monHocTrung.maMonHoc,
-        message: "Sinh vien them mon hoc that bai vi ten mon hoac ma mon bi trung trong hoc ky",
+        message: "Sinh viên thêm môn học thất bại vì tên môn hoặc mã môn bị trùng trong học kỳ",
         metadata: {
           maHocKy: data.maHocKy,
           maMon: data.maMon,

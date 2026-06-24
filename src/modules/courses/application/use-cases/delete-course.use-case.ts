@@ -30,7 +30,7 @@ export class XuLyXoaHocPhan {
         action: "COURSE_DELETE_NOT_FOUND",
         tableName: "mon_hoc",
         recordId: command.maMonHoc,
-        message: "Sinh vien xoa mon hoc that bai vi khong tim thay mon hoc",
+        message: "Sinh viên xóa môn học thất bại vì môn học không tồn tại hoặc không thuộc sinh viên",
         metadata: {
           maMonHoc: command.maMonHoc,
           force: Boolean(command.force)
@@ -47,7 +47,7 @@ export class XuLyXoaHocPhan {
         action: "COURSE_DELETE_REQUIRES_FORCE",
         tableName: "mon_hoc",
         recordId: command.maMonHoc,
-        message: "Sinh vien xoa mon hoc bi canh bao vi mon hoc co du lieu lien quan",
+        message: "Sinh viên xóa môn học bị cảnh báo vì môn học có dữ liệu liên quan",
         metadata: {
           maMonHoc: command.maMonHoc,
           maHocKy: monHoc.maHocKy,
@@ -74,7 +74,7 @@ export class XuLyXoaHocPhan {
             action: "COURSE_DELETE_NOT_FOUND_DURING_TRANSACTION",
             tableName: "mon_hoc",
             recordId: command.maMonHoc,
-            message: "Sinh vien xoa mon hoc that bai vi ban ghi khong con ton tai trong transaction",
+            message: "Sinh viên xóa môn học thất bại vì bản ghi không còn tồn tại trong giao dịch",
             metadata: {
               maMonHoc: command.maMonHoc,
               force: Boolean(command.force)
@@ -118,7 +118,7 @@ export class XuLyXoaHocPhan {
         action: "COURSE_DELETE_FAILED",
         tableName: "mon_hoc",
         recordId: command.maMonHoc,
-        message: "Lỗi xóa môn học trong database",
+        message: "Lỗi xóa môn học trong Cơ sở dữ liệu",
         error,
         metadata: {
           maMonHoc: command.maMonHoc,

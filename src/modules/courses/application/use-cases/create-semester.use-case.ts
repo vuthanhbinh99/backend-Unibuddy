@@ -32,7 +32,7 @@ export class XuLyTaoHocKy {
         action: "SEMESTER_CREATE_DUPLICATE",
         tableName: "hoc_ky",
         recordId: hocKyDaTonTai.maHocKy,
-        message: "Sinh vien tao hoc ky that bai vi ten hoc ky da ton tai",
+        message: "Sinh viên tạo học kỳ thất bại vì tên học kỳ đã tồn tại",
         metadata: {
           tenHocKy,
           existingMaHocKy: hocKyDaTonTai.maHocKy
@@ -87,7 +87,7 @@ export class XuLyTaoHocKy {
         actorId: command.actorId,
         action: "SEMESTER_CREATE_FAILED",
         tableName: "hoc_ky",
-        message: "Lỗi lưu thông tin học kỳ vào database",
+        message: "Lỗi lưu thông tin học kỳ vào Cơ so dữ liệu",
         error,
         metadata: {
           tenHocKy,
