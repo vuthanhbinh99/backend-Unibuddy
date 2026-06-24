@@ -47,10 +47,22 @@ export class XuLyTaoNhomHocTap {
     );
 
     if (tenNhomDaTonTai) {
+      await this.deps.dichVuGhiLogLoiNhomHocTap.ghiCanhBao({
+        actorId: command.actorId,
+        action: "STUDY_GROUP_CREATE_DUPLICATE_NAME",
+        tableName: "nhom_hoc_tap",
+        message: "Sinh vien tao nhom hoc tap that bai vi ten nhom da ton tai trong mon va truong",
+        metadata: {
+          maMonHoc: nguCanhMonHoc.maMonHoc,
+          maMon: nguCanhMonHoc.maMon,
+          maTruong: nguCanhMonHoc.maTruong,
+          tenNhom: command.tenNhom
+        }
+      });
       throw LoiUngDung.xungDot("Tên nhóm học tập đã tồn tại trong môn học và trường này");
     }
 
-    const maThamGia = await this.taoMaThamGiaDocNhat();
+    const maThamGia = await this.taoMaThamGiaDocNhat(command.actorId);
 
     try {
       const nhom = await this.deps.giaoDich.thucThiTrongGiaoDich(async (tx) => {
@@ -126,14 +138,44 @@ export class XuLyTaoNhomHocTap {
     );
 
     if (!nguCanh) {
+      await this.deps.dichVuGhiLogLoiNhomHocTap.ghiCanhBao({
+        actorId: command.actorId,
+        action: "STUDY_GROUP_CREATE_COURSE_NOT_IN_SCHEDULE",
+        tableName: "nhom_hoc_tap",
+        message: "Sinh vien tao nhom hoc tap that bai vi mon hoc chua co trong thoi khoa bieu",
+        metadata: {
+          maMonHoc: command.maMonHoc
+        }
+      });
       throw LoiUngDung.khongCoQuyen("Không thể tạo nhóm cho môn học chưa có trong thời khóa biểu của sinh viên");
     }
 
     if (!nguCanh.maMon) {
+      await this.deps.dichVuGhiLogLoiNhomHocTap.ghiCanhBao({
+        actorId: command.actorId,
+        action: "STUDY_GROUP_CREATE_COURSE_CODE_MISSING",
+        tableName: "nhom_hoc_tap",
+        message: "Sinh vien tao nhom hoc tap that bai vi mon hoc trong TKB chua co ma mon",
+        metadata: {
+          maMonHoc: nguCanh.maMonHoc,
+          tenMon: nguCanh.tenMon
+        }
+      });
       throw LoiUngDung.yeuCauSai("Môn học trong thời khóa biểu chưa có mã môn, không thể tạo nhóm học tập");
     }
 
     if (nguCanh.maTruong === null) {
+      await this.deps.dichVuGhiLogLoiNhomHocTap.ghiCanhBao({
+        actorId: command.actorId,
+        action: "STUDY_GROUP_CREATE_SCHOOL_MISSING",
+        tableName: "nhom_hoc_tap",
+        message: "Sinh vien tao nhom hoc tap that bai vi ho so sinh vien chua co ma truong",
+        metadata: {
+          maMonHoc: nguCanh.maMonHoc,
+          maMon: nguCanh.maMon,
+          tenMon: nguCanh.tenMon
+        }
+      });
       throw LoiUngDung.yeuCauSai("Tài khoản sinh viên chưa có mã trường, không thể tạo nhóm học tập theo môn học");
     }
 
@@ -145,7 +187,7 @@ export class XuLyTaoNhomHocTap {
     };
   }
 
-  private async taoMaThamGiaDocNhat() {
+  private async taoMaThamGiaDocNhat(actorId: string) {
     for (let lanThu = 0; lanThu < 5; lanThu += 1) {
       const maThamGia = taoMaThamGia();
       const daTonTai = await this.deps.khoNhomHocTap.kiemTraMaThamGiaDaTonTai(maThamGia);
@@ -155,6 +197,16 @@ export class XuLyTaoNhomHocTap {
       }
     }
 
+    await this.deps.dichVuGhiLogLoiNhomHocTap.ghi({
+      actorId,
+      action: "STUDY_GROUP_INVITE_CODE_GENERATE_FAILED",
+      tableName: "nhom_hoc_tap",
+      message: "Loi sinh ma moi nhom hoc tap duy nhat",
+      error: new Error("INVITE_CODE_COLLISION"),
+      metadata: {
+        attempts: 5
+      }
+    });
     throw new LoiUngDung(500, CacLoi.INTERNAL_ERROR, "Hệ thống bận, không thể sinh mã mời nhóm lúc này");
   }
 }

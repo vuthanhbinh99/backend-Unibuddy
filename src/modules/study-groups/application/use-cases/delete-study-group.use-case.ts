@@ -29,6 +29,17 @@ export class XuLyXoaNhomHocTap {
     const nhom = await this.deps.khoNhomHocTap.timTheoMa(command.maNhom);
 
     if (!nhom) {
+      await this.deps.dichVuGhiLogLoiNhomHocTap.ghiCanhBao({
+        actorId: command.actorId,
+        action: "STUDY_GROUP_DELETE_GROUP_NOT_FOUND",
+        tableName: "nhom_hoc_tap",
+        recordId: command.maNhom,
+        message: "Sinh vien giai tan nhom that bai vi khong tim thay nhom hoc tap",
+        metadata: {
+          maNhom: command.maNhom,
+          ruleCode: "BR-GROUP-01"
+        }
+      });
       throw LoiUngDung.khongTimThay("Không tìm thấy nhóm học tập");
     }
 
@@ -56,12 +67,34 @@ export class XuLyXoaNhomHocTap {
     const nguoiDung = await this.deps.khoNguoiDung.timTheoMa(command.actorId);
 
     if (!nguoiDung) {
+      await this.deps.dichVuGhiLogLoiNhomHocTap.ghiCanhBao({
+        actorId: command.actorId,
+        action: "STUDY_GROUP_DELETE_USER_NOT_FOUND",
+        tableName: "nguoi_dung",
+        recordId: command.actorId,
+        message: "Sinh vien giai tan nhom that bai vi tai khoan khong ton tai",
+        metadata: {
+          maNhom: command.maNhom,
+          ruleCode: "BR-GROUP-01"
+        }
+      });
       throw LoiUngDung.khongDuocXacThuc("Người dùng không tồn tại");
     }
 
     const matKhauHopLe = await this.deps.boMaHoaMatKhau.soSanh(command.matKhauXacNhan, nguoiDung.passwordHash);
 
     if (!matKhauHopLe) {
+      await this.deps.dichVuGhiLogLoiNhomHocTap.ghiCanhBao({
+        actorId: command.actorId,
+        action: "STUDY_GROUP_DELETE_PASSWORD_INVALID",
+        tableName: "nhom_hoc_tap",
+        recordId: command.maNhom,
+        message: "Sinh vien giai tan nhom that bai vi mat khau xac nhan khong dung",
+        metadata: {
+          maNhom: command.maNhom,
+          ruleCode: "BR-GROUP-01"
+        }
+      });
       throw LoiUngDung.khongDuocXacThuc("Mật khẩu xác nhận không đúng");
     }
 
@@ -73,7 +106,22 @@ export class XuLyXoaNhomHocTap {
         const soCongViecDaXoa = await this.deps.khoNhomHocTap.xoaCongViecTheoNhom(command.maNhom, tx);
         const soThanhVienDaXoa = await this.deps.khoNhomHocTap.xoaThanhVienTheoNhom(command.maNhom, tx);
 
-        await this.deps.khoNhomHocTap.xoaNhom(command.maNhom, tx);
+        const daXoaNhom = await this.deps.khoNhomHocTap.xoaNhom(command.maNhom, tx);
+
+        if (!daXoaNhom) {
+          await this.deps.dichVuGhiLogLoiNhomHocTap.ghiCanhBao({
+            actorId: command.actorId,
+            action: "STUDY_GROUP_DELETE_GROUP_NOT_FOUND_DURING_TRANSACTION",
+            tableName: "nhom_hoc_tap",
+            recordId: command.maNhom,
+            message: "Sinh vien giai tan nhom that bai vi ban ghi nhom khong con ton tai trong transaction",
+            metadata: {
+              maNhom: command.maNhom,
+              ruleCode: "BR-GROUP-01"
+            }
+          });
+          throw LoiUngDung.khongTimThay("Không tìm thấy nhóm học tập");
+        }
 
         await this.deps.khoNhomHocTap.taoThongBaoNhieu(
           {

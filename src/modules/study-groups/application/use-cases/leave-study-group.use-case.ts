@@ -24,12 +24,32 @@ export class XuLyRoiNhomHocTap {
     const nhom = await this.deps.khoNhomHocTap.timTheoMa(command.maNhom);
 
     if (!nhom) {
+      await this.deps.dichVuGhiLogLoiNhomHocTap.ghiCanhBao({
+        actorId: command.actorId,
+        action: "STUDY_GROUP_LEAVE_GROUP_NOT_FOUND",
+        tableName: "nhom_hoc_tap",
+        recordId: command.maNhom,
+        message: "Sinh vien roi nhom that bai vi khong tim thay nhom hoc tap",
+        metadata: {
+          maNhom: command.maNhom
+        }
+      });
       throw LoiUngDung.khongTimThay("Không tìm thấy nhóm học tập");
     }
 
     const thanhVien = await this.deps.khoNhomHocTap.timThanhVien(command.maNhom, command.actorId);
 
     if (!thanhVien) {
+      await this.deps.dichVuGhiLogLoiNhomHocTap.ghiCanhBao({
+        actorId: command.actorId,
+        action: "STUDY_GROUP_LEAVE_MEMBER_NOT_FOUND",
+        tableName: "thanh_vien_nhom",
+        recordId: command.maNhom,
+        message: "Sinh vien roi nhom that bai vi khong phai thanh vien cua nhom",
+        metadata: {
+          maNhom: command.maNhom
+        }
+      });
       throw LoiUngDung.khongTimThay("Bạn không thuộc nhóm học tập này");
     }
 

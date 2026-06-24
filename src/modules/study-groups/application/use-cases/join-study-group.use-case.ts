@@ -24,12 +24,32 @@ export class XuLyThamGiaNhomHocTap {
     const nhom = await this.deps.khoNhomHocTap.timTheoMaThamGia(command.maThamGia);
 
     if (!nhom) {
+      await this.deps.dichVuGhiLogLoiNhomHocTap.ghiCanhBao({
+        actorId: command.actorId,
+        action: "STUDY_GROUP_JOIN_INVITE_NOT_FOUND",
+        tableName: "nhom_hoc_tap",
+        message: "Sinh vien tham gia nhom that bai vi ma moi khong chinh xac",
+        metadata: {
+          maThamGia: command.maThamGia
+        }
+      });
       throw LoiUngDung.khongTimThay("Mã mời không chính xác");
     }
 
     const thanhVienHienTai = await this.deps.khoNhomHocTap.timThanhVien(nhom.maNhom, command.actorId);
 
     if (thanhVienHienTai) {
+      await this.deps.dichVuGhiLogLoiNhomHocTap.ghiCanhBao({
+        actorId: command.actorId,
+        action: "STUDY_GROUP_JOIN_DUPLICATE_MEMBER",
+        tableName: "thanh_vien_nhom",
+        recordId: nhom.maNhom,
+        message: "Sinh vien tham gia nhom that bai vi da la thanh vien tu truoc",
+        metadata: {
+          maNhom: nhom.maNhom,
+          vaiTroHienTai: thanhVienHienTai.vaiTroTrongNhom
+        }
+      });
       throw LoiUngDung.xungDot("Bạn đã tham gia nhóm này từ trước");
     }
 
