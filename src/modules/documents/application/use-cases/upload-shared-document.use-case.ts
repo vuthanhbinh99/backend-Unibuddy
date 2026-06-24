@@ -34,12 +34,19 @@ export class XuLyUploadChiaSeTaiLieu {
     );
 
     if (!monHocThuocSinhVien) {
+      await this.ghiNhatKyCanhBao(command, "DOCUMENT_UPLOAD_COURSE_FORBIDDEN", "Sinh vien chia se tai lieu that bai vi mon hoc khong thuoc sinh vien", {
+        maMonHoc: command.maMonHoc
+      });
       throw LoiUngDung.khongCoQuyen("Không thể chia sẻ tài liệu cho môn học này vì bạn không thuộc trong môn học");
     }
 
     const taiLieuDaTonTai = await this.deps.khoTaiLieu.timTheoDuongDan(command.downloadUrl);
 
     if (taiLieuDaTonTai) {
+      await this.ghiNhatKyCanhBao(command, "DOCUMENT_UPLOAD_DUPLICATE_URL", "Sinh vien chia se tai lieu that bai vi tai lieu da ton tai trong he thong", {
+        maMonHoc: command.maMonHoc,
+        existingMaTaiLieu: taiLieuDaTonTai.maTaiLieu
+      });
       throw LoiUngDung.xungDot("Tài liệu này đã được lưu trong hệ thống, vui lòng kiểm tra lại đường dẫn tải về");
     }
 
@@ -114,6 +121,35 @@ export class XuLyUploadChiaSeTaiLieu {
       nhatKy.error("Không thể ghi log upload tài liệu", {
         error: auditError,
         originalErrorName: layTenLoi(error)
+      });
+    }
+  }
+
+  private async ghiNhatKyCanhBao(
+    command: LenhUploadChiaSeTaiLieu,
+    action: string,
+    message: string,
+    metadata: Record<string, unknown>
+  ) {
+    try {
+      await this.deps.khoNhatKyHeThong.tao({
+        actorId: command.actorId,
+        level: "WARNING",
+        action,
+        tableName: "tai_lieu",
+        message,
+        metadata: {
+          tenFile: command.tieuDe,
+          loaiFile: command.loaiFile,
+          dungLuong: command.dungLuong,
+          cheDoHienThi: command.cheDoHienThi,
+          ...metadata
+        }
+      });
+    } catch (auditError) {
+      nhatKy.error("KhÃ´ng thá»ƒ ghi log cáº£nh bÃ¡o upload tÃ i liá»‡u", {
+        error: auditError,
+        action
       });
     }
   }
