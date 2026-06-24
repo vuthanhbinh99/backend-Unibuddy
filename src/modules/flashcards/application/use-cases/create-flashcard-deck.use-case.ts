@@ -100,7 +100,7 @@ export class XuLyTaoBoFlashcard {
         actorId: command.actorId,
         action: "FLASHCARD_DECK_CREATE_FAILED",
         tableName: "bo_flashcard",
-        message: "Lỗi lưu thông tin bộ flashcard vào database",
+        message: "Lỗi lưu thông tin bộ flashcard vào Cơ sở dữ liệu",
         error,
         metadata: { maMonHoc, tenBo }
       });

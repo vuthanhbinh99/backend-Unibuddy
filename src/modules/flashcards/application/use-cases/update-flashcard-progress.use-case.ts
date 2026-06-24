@@ -88,7 +88,7 @@ export class XuLyCapNhatTienDoFlashcard {
             action: "FLASHCARD_PROGRESS_UPDATED",
             tableName: "flashcard",
             recordId: the.maFlashcard,
-            message: "Cập nhật tiến độ học thẻ thành công theo thuật toán SM-2",
+            message: "Cập nhật tiến độ học thẻ thành công ",
             metadata: {
               maBo: the.maBo,
               maFlashcard: the.maFlashcard,

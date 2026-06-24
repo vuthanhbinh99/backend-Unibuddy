@@ -144,7 +144,7 @@ export class XuLyImportFlashcards {
         action: "FLASHCARD_IMPORT_FAILED",
         tableName: "flashcard",
         recordId: command.maBo,
-        message: "Lỗi lưu danh sách thẻ flashcard import vào database",
+        message: "Lỗi lưu danh sách thẻ flashcard import vào Cơ sở dữ liệu",
         error,
         metadata: {
           maBo: command.maBo,

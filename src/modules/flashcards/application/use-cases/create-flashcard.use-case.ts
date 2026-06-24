@@ -94,7 +94,7 @@ export class XuLyTaoTheFlashcard {
         action: "FLASHCARD_CARD_CREATE_FAILED",
         tableName: "flashcard",
         recordId: command.maBo,
-        message: "Lỗi lưu thẻ flashcard vào database",
+        message: "Lỗi lưu thẻ flashcard vào Cơ sở dữ liệu",
         error,
         metadata: { maBo: command.maBo }
       });
