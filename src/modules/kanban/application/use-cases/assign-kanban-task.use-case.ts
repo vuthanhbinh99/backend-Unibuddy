@@ -90,7 +90,7 @@ export class XuLyPhanCongCongViecKanban {
         action: "KANBAN_TASK_ASSIGN_FAILED",
         tableName: "cong_viec_nhom",
         recordId: maCongViec,
-        message: "Lỗi phân công công việc Kanban vào database",
+        message: "Lỗi phân công công việc Kanban vào cơ sở dữ liệu",
         error,
         metadata: {
           maNhom: congViec.maNhom,

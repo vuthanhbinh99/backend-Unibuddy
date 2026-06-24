@@ -84,7 +84,7 @@ export class XuLyCapNhatThongTinCongViecKanban {
         action: "KANBAN_TASK_UPDATE_FAILED",
         tableName: "cong_viec_nhom",
         recordId: maCongViec,
-        message: "Lỗi cập nhật thông tin công việc Kanban vào database",
+        message: "Lỗi cập nhật thông tin công việc Kanban vào cơ sở dữ liệu",
         error,
         metadata: {
           maCongViec,

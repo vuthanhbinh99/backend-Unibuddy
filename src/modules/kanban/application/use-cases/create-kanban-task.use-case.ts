@@ -103,7 +103,7 @@ export class XuLyTaoCongViecKanban {
         actorId: command.actorId,
         action: "KANBAN_TASK_CREATE_FAILED",
         tableName: "cong_viec_nhom",
-        message: "Lỗi lưu thông tin công việc Kanban vào database",
+        message: "Lỗi lưu thông tin công việc Kanban vào cơ sở dữ liệu",
         error,
         metadata: {
           maNhom: duLieu.maNhom,

@@ -103,7 +103,7 @@ export class XuLyBinhLuanCongViecKanban {
         action: "KANBAN_TASK_COMMENT_FAILED",
         tableName: "binh_luan_cong_viec",
         recordId: maCongViec,
-        message: "Lỗi lưu bình luận công việc Kanban vào database",
+        message: "Lỗi lưu bình luận công việc Kanban vào cơ sở dữ liệu",
         error,
         metadata: {
           maNhom: congViec.maNhom,
