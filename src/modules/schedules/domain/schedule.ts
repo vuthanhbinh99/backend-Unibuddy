@@ -29,6 +29,7 @@ export type MonHocCuaSinhVien = {
   maHocKy: string;
   maMon: string | null;
   tenMon: string;
+  soTinChi: number;
   tenHocKy: string;
 };
 
@@ -50,18 +51,22 @@ export type MappingCotImportThoiKhoaBieu = {
   maMonHoc?: string;
   maMon?: string;
   tenMon?: string;
-  thu: string;
-  tietBatDau: string;
+  thu?: string;
+  tietBatDau?: string;
   soTiet?: string;
+  soTinChi?: string;
   phongHoc?: string;
   ngayBatDau?: string;
   ngayKetThuc?: string;
 };
 
-export type DuLieuImportLichHoc = DuLieuLichHoc & {
+export type DuLieuImportLichHoc = Omit<DuLieuLichHoc, "maMonHoc"> & {
   rowIndex: number;
+  maMonHoc: string | null;
   maMon: string | null;
   tenMon: string;
+  soTinChi: number | null;
+  tuDongTaoMonHoc: boolean;
 };
 
 export type DongPreviewImportThoiKhoaBieu = {

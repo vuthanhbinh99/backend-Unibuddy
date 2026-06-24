@@ -4,6 +4,7 @@ import type { BoPhuThuocUngDung } from "../../../container.js";
 import { LoiUngDung } from "../../../shared/errors/app-error.js";
 import { daTao, thanhCong } from "../../../shared/http/api-response.js";
 import { xuLyBatDongBo } from "../../../shared/http/async-handler.js";
+import { taoChiTietImportThatBaiChoNhapThuCong } from "../application/services/schedule-manual-entry-fallback.service.js";
 
 const maLichHoc = z.string().uuid();
 const maMonHoc = z.string().uuid();
@@ -27,7 +28,14 @@ const lichHocBodyBase = z.object({
   ngayKetThuc: ngayIso
 });
 
-const kiemTraKhoangLichHoc = (data: z.infer<typeof lichHocBodyBase>, ctx: z.RefinementCtx) => {
+type DuLieuKhoangLichHoc = {
+  tietBatDau: number;
+  soTiet: number;
+  ngayBatDau: string | null;
+  ngayKetThuc: string | null;
+};
+
+const kiemTraKhoangLichHoc = (data: DuLieuKhoangLichHoc, ctx: z.RefinementCtx) => {
   if (data.tietBatDau + data.soTiet - 1 > 12) {
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
@@ -53,19 +61,26 @@ const mappingImport = z.object({
   maMonHoc: z.string().trim().min(1).optional(),
   maMon: z.string().trim().min(1).optional(),
   tenMon: z.string().trim().min(1).optional(),
-  thu: z.string().trim().min(1),
-  tietBatDau: z.string().trim().min(1),
+  thu: z.string().trim().min(1).optional(),
+  tietBatDau: z.string().trim().min(1).optional(),
   soTiet: z.string().trim().min(1).optional(),
+  soTinChi: z.string().trim().min(1).optional(),
   phongHoc: z.string().trim().min(1).optional(),
   ngayBatDau: z.string().trim().min(1).optional(),
   ngayKetThuc: z.string().trim().min(1).optional()
 });
 
 const itemImportDaChuanHoa = lichHocBodyBase
+  .omit({
+    maMonHoc: true
+  })
   .extend({
+    maMonHoc: maMonHoc.optional().nullable().default(null),
     rowIndex: z.coerce.number().int().positive(),
     maMon: z.string().trim().nullable().default(null),
-    tenMon: z.string().trim().min(1)
+    tenMon: z.string().trim().min(1),
+    soTinChi: z.coerce.number().int().positive().optional().nullable().default(null),
+    tuDongTaoMonHoc: z.coerce.boolean().optional().default(false)
   })
   .superRefine(kiemTraKhoangLichHoc);
 
@@ -98,8 +113,8 @@ export const luocDoXoaLichHoc = z.object({
 export const luocDoPreviewImportThoiKhoaBieu = z.object({
   body: z.object({
     maHocKy: maHocKy.optional().nullable().transform((value) => value ?? null),
-    rows: z.array(dongImport).min(1).max(1000),
-    mapping: mappingImport
+    rows: z.array(dongImport).max(1000).default([]),
+    mapping: mappingImport.default({})
   }),
   params: z.object({}),
   query: z.object({})
@@ -107,6 +122,7 @@ export const luocDoPreviewImportThoiKhoaBieu = z.object({
 
 export const luocDoXacNhanImportThoiKhoaBieu = z.object({
   body: z.object({
+    maHocKy: maHocKy.optional().nullable().transform((value) => value ?? null),
     items: z.array(itemImportDaChuanHoa).min(1).max(1000)
   }),
   params: z.object({}),
@@ -191,7 +207,10 @@ export class BoDieuKhienLichHoc {
     const file = req.file;
 
     if (!file) {
-      throw LoiUngDung.yeuCauSai("Vui lòng tải lên file thời khóa biểu");
+      throw LoiUngDung.yeuCauSai(
+        "Vui lòng tải lên file thời khóa biểu",
+        taoChiTietImportThatBaiChoNhapThuCong("UPLOAD_FILE", { reasonCode: "FILE_MISSING" })
+      );
     }
 
     const ketQua = await this.boPhuThuoc.xuLyTrichXuatHeaderImportThoiKhoaBieu.thucThi({
@@ -222,6 +241,7 @@ export class BoDieuKhienLichHoc {
     const { body } = req.duLieuDaXacThuc as DuLieuXacNhanImport;
     const ketQua = await this.boPhuThuoc.xuLyXacNhanImportThoiKhoaBieu.thucThi({
       actorId,
+      maHocKy: body.maHocKy,
       items: body.items
     });
 

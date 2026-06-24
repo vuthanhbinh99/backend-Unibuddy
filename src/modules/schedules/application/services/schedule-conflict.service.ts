@@ -1,13 +1,16 @@
 import type { DuLieuLichHoc } from "../../domain/schedule.js";
 
-type LichHocCoDong = DuLieuLichHoc & {
+type DuLieuThoiGianLichHoc = Omit<DuLieuLichHoc, "maMonHoc">;
+
+type LichHocCoDong = DuLieuThoiGianLichHoc & {
+  maMonHoc?: string | null;
   rowIndex?: number;
 };
 
 const ngayBatDau = (value: string | null) => value ?? "0000-01-01";
 const ngayKetThuc = (value: string | null) => value ?? "9999-12-31";
 
-export const kiemTraHaiLichHocTrungNhau = (a: DuLieuLichHoc, b: DuLieuLichHoc) => {
+export const kiemTraHaiLichHocTrungNhau = (a: DuLieuThoiGianLichHoc, b: DuLieuThoiGianLichHoc) => {
   if (a.thu !== b.thu) {
     return false;
   }

@@ -24,6 +24,16 @@ export class XuLyXoaLichHoc {
     const lichHoc = await this.deps.khoLichHoc.timTheoMaCuaSinhVien(command.maLichHoc, command.actorId);
 
     if (!lichHoc) {
+      await this.deps.dichVuGhiLogLoiThoiKhoaBieu.ghiCanhBao({
+        actorId: command.actorId,
+        action: "SCHEDULE_DELETE_NOT_FOUND",
+        tableName: "lich_hoc",
+        recordId: command.maLichHoc,
+        message: "Sinh vien xoa lich hoc that bai vi khong tim thay lich hoc",
+        metadata: {
+          maLichHoc: command.maLichHoc
+        }
+      });
       throw LoiUngDung.khongTimThay("Không tìm thấy lịch học");
     }
 
@@ -32,6 +42,16 @@ export class XuLyXoaLichHoc {
         const daXoa = await this.deps.khoLichHoc.xoa(command.maLichHoc, tx);
 
         if (!daXoa) {
+          await this.deps.dichVuGhiLogLoiThoiKhoaBieu.ghiCanhBao({
+            actorId: command.actorId,
+            action: "SCHEDULE_DELETE_NOT_FOUND_DURING_TRANSACTION",
+            tableName: "lich_hoc",
+            recordId: command.maLichHoc,
+            message: "Sinh vien xoa lich hoc that bai vi ban ghi khong con ton tai trong transaction",
+            metadata: {
+              maLichHoc: command.maLichHoc
+            }
+          });
           throw LoiUngDung.khongTimThay("Không tìm thấy lịch học");
         }
 

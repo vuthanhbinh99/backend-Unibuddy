@@ -15,6 +15,8 @@ type DuLieuGhiLogLoi = {
   metadata?: Record<string, unknown>;
 };
 
+type DuLieuGhiCanhBao = Omit<DuLieuGhiLogLoi, "error">;
+
 const layTenLoi = (error: unknown) => (error instanceof Error ? error.name : typeof error);
 
 export class DichVuGhiLogLoiThoiKhoaBieu {
@@ -38,6 +40,25 @@ export class DichVuGhiLogLoiThoiKhoaBieu {
       nhatKy.error("Khong the ghi audit loi module thoi khoa bieu", {
         error: auditError,
         originalErrorName: layTenLoi(input.error)
+      });
+    }
+  }
+
+  async ghiCanhBao(input: DuLieuGhiCanhBao) {
+    try {
+      await this.deps.khoNhatKyHeThong.tao({
+        actorId: input.actorId,
+        level: "WARNING",
+        action: input.action,
+        tableName: input.tableName,
+        recordId: input.recordId,
+        message: input.message,
+        metadata: input.metadata
+      });
+    } catch (auditError) {
+      nhatKy.error("Khong the ghi audit canh bao module thoi khoa bieu", {
+        error: auditError,
+        action: input.action
       });
     }
   }

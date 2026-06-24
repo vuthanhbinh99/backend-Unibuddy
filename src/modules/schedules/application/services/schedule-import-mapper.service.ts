@@ -8,6 +8,7 @@ export type DongImportDaChuanHoa = Partial<DuLieuLichHoc> & {
   rowIndex: number;
   maMon: string | null;
   tenMon: string | null;
+  soTinChi: number | null;
   loi: string[];
 };
 
@@ -18,6 +19,7 @@ const BO_COT_IMPORT = {
   thu: ["thu", "thu trong tuan", "ngay hoc"],
   tietBatDau: ["tiet bat dau", "tiet_bd", "tiet bd", "tiet", "ca hoc"],
   soTiet: ["so tiet", "so_tiet", "tong tiet", "thoi luong"],
+  soTinChi: ["so tin chi", "so_tin_chi", "tin chi", "stc"],
   phongHoc: ["phong", "phong hoc", "dia diem"],
   ngayBatDau: ["ngay bat dau", "tu ngay", "bat dau"],
   ngayKetThuc: ["ngay ket thuc", "den ngay", "ket thuc"]
@@ -179,8 +181,11 @@ export class DichVuMappingImportThoiKhoaBieu {
     const maMonHoc = layText(row, mapping.maMonHoc) || undefined;
     const maMon = layText(row, mapping.maMon) || null;
     const tenMon = layText(row, mapping.tenMon) || null;
-    const thu = layThu(row[mapping.thu]);
-    const { tietBatDau, soTiet } = layKhoangTiet(row[mapping.tietBatDau], mapping.soTiet ? row[mapping.soTiet] : null);
+    const soTinChi = mapping.soTinChi ? laySoNguyen(row[mapping.soTinChi]) : null;
+    const thu = mapping.thu ? layThu(row[mapping.thu]) : null;
+    const { tietBatDau, soTiet } = mapping.tietBatDau
+      ? layKhoangTiet(row[mapping.tietBatDau], mapping.soTiet ? row[mapping.soTiet] : null)
+      : { tietBatDau: null, soTiet: null };
     const phongHoc = layText(row, mapping.phongHoc) || null;
     const ngayBatDau = layNgay(mapping.ngayBatDau ? row[mapping.ngayBatDau] : null);
     const ngayKetThuc = layNgay(mapping.ngayKetThuc ? row[mapping.ngayKetThuc] : null);
@@ -199,6 +204,10 @@ export class DichVuMappingImportThoiKhoaBieu {
 
     if (!soTiet || soTiet < 1) {
       loi.push("Số tiết phải lớn hơn 0");
+    }
+
+    if (mapping.soTinChi && (!soTinChi || soTinChi < 1)) {
+      loi.push("Số tín chỉ phải lớn hơn 0");
     }
 
     if (tietBatDau && soTiet && tietBatDau + soTiet - 1 > 12) {
@@ -222,6 +231,7 @@ export class DichVuMappingImportThoiKhoaBieu {
       maMonHoc,
       maMon,
       tenMon,
+      soTinChi,
       thu: thu ?? undefined,
       tietBatDau: tietBatDau ?? undefined,
       soTiet: soTiet ?? undefined,

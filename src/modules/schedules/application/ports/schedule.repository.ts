@@ -35,6 +35,12 @@ export interface KhoLichHoc {
     maNguoiDung: string,
     boThucThi?: BoThucThiTruyVan
   ): Promise<boolean>;
+  kiemTraHocKyThuocSinhVien(
+    maHocKy: string,
+    maNguoiDung: string,
+    boThucThi?: BoThucThiTruyVan
+  ): Promise<boolean>;
+  demMonHocCuaSinhVien(maNguoiDung: string, boThucThi?: BoThucThiTruyVan): Promise<number>;
   layNguCanhMonHocTrongLichSinhVien(
     maMonHoc: string,
     maNguoiDung: string,

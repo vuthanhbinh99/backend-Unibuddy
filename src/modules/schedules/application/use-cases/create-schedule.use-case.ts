@@ -26,18 +26,48 @@ export class XuLyTaoLichHoc {
     const loiDuLieu = kiemTraDuLieuLichHocHopLe(data);
 
     if (loiDuLieu.length > 0) {
+      await this.deps.dichVuGhiLogLoiThoiKhoaBieu.ghiCanhBao({
+        actorId: command.actorId,
+        action: "SCHEDULE_CREATE_VALIDATION_FAILED",
+        tableName: "lich_hoc",
+        message: "Sinh vien them lich hoc that bai vi du lieu khong hop le",
+        metadata: {
+          maMonHoc: command.maMonHoc,
+          errors: loiDuLieu
+        }
+      });
       throw LoiUngDung.yeuCauSai("Dữ liệu lịch học không hợp lệ", loiDuLieu);
     }
 
     const monHocHopLe = await this.deps.khoLichHoc.kiemTraMonHocThuocSinhVien(command.maMonHoc, command.actorId);
 
     if (!monHocHopLe) {
+      await this.deps.dichVuGhiLogLoiThoiKhoaBieu.ghiCanhBao({
+        actorId: command.actorId,
+        action: "SCHEDULE_CREATE_COURSE_FORBIDDEN",
+        tableName: "lich_hoc",
+        message: "Sinh vien them lich hoc that bai vi mon hoc khong thuoc sinh vien",
+        metadata: {
+          maMonHoc: command.maMonHoc
+        }
+      });
       throw LoiUngDung.khongCoQuyen("Không thể thêm lịch học cho môn học không thuộc sinh viên");
     }
 
     const xungDot = await this.deps.khoLichHoc.timXungDot(command.actorId, data);
 
     if (xungDot.length > 0) {
+      await this.deps.dichVuGhiLogLoiThoiKhoaBieu.ghiCanhBao({
+        actorId: command.actorId,
+        action: "SCHEDULE_CREATE_CONFLICT",
+        tableName: "lich_hoc",
+        message: "Sinh vien them lich hoc that bai vi trung lich BR-SCH-01",
+        metadata: {
+          maMonHoc: command.maMonHoc,
+          ruleCode: "BR-SCH-01",
+          xungDot
+        }
+      });
       throw LoiUngDung.xungDot("Lịch học bị trùng với môn học khác đã có sẵn", {
         ruleCode: "BR-SCH-01",
         xungDot

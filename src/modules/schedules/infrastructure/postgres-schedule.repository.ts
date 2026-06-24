@@ -33,6 +33,7 @@ type DongMonHoc = {
   maHocKy: string;
   maMon: string | null;
   tenMon: string;
+  soTinChi: number;
   tenHocKy: string;
 };
 
@@ -64,6 +65,7 @@ const anhXaMonHoc = (row: DongMonHoc): MonHocCuaSinhVien => ({
   maHocKy: row.maHocKy,
   maMon: row.maMon,
   tenMon: row.tenMon,
+  soTinChi: row.soTinChi,
   tenHocKy: row.tenHocKy
 });
 
@@ -100,6 +102,7 @@ const cauTruyVanMonHocCoSo = `
     mh.ma_hoc_ky AS "maHocKy",
     mh.ma_mon AS "maMon",
     mh.ten_mon AS "tenMon",
+    mh.so_tin_chi AS "soTinChi",
     hk.ten_hoc_ky AS "tenHocKy"
   FROM mon_hoc mh
   INNER JOIN hoc_ky hk ON hk.ma_hoc_ky = mh.ma_hoc_ky
@@ -170,6 +173,40 @@ export class KhoLichHocPostgres implements KhoLichHoc {
     );
 
     return ketQua.rows[0]?.exists ?? false;
+  }
+
+  async kiemTraHocKyThuocSinhVien(
+    maHocKy: string,
+    maNguoiDung: string,
+    boThucThi: BoThucThiTruyVan = this.coSoDuLieu
+  ) {
+    const ketQua = await boThucThi.truyVan<{ exists: boolean }>(
+      `
+        SELECT EXISTS (
+          SELECT 1
+          FROM hoc_ky hk
+          WHERE hk.ma_hoc_ky = $1
+            AND hk.ma_nguoi_dung = $2
+        ) AS "exists"
+      `,
+      [maHocKy, maNguoiDung]
+    );
+
+    return ketQua.rows[0]?.exists ?? false;
+  }
+
+  async demMonHocCuaSinhVien(maNguoiDung: string, boThucThi: BoThucThiTruyVan = this.coSoDuLieu) {
+    const ketQua = await boThucThi.truyVan<{ total: string | number }>(
+      `
+        SELECT COUNT(*)::int AS "total"
+        FROM mon_hoc mh
+        INNER JOIN hoc_ky hk ON hk.ma_hoc_ky = mh.ma_hoc_ky
+        WHERE hk.ma_nguoi_dung = $1
+      `,
+      [maNguoiDung]
+    );
+
+    return Number(ketQua.rows[0]?.total ?? 0);
   }
 
   async layNguCanhMonHocTrongLichSinhVien(

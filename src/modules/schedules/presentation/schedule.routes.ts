@@ -4,6 +4,7 @@ import type { BoPhuThuocUngDung } from "../../../container.js";
 import { LoiUngDung } from "../../../shared/errors/app-error.js";
 import { xacThucYeuCau } from "../../../shared/validation/validate-request.js";
 import { BoTrungGianXacThuc } from "../../auth/presentation/auth.middleware.js";
+import { taoChiTietImportThatBaiChoNhapThuCong } from "../application/services/schedule-manual-entry-fallback.service.js";
 import {
   BoDieuKhienLichHoc,
   luocDoCapNhatLichHoc,
@@ -32,11 +33,21 @@ const taiFileImportThoiKhoaBieu = (req: Request, res: Response, next: NextFuncti
     }
 
     if (error instanceof multer.MulterError && error.code === "LIMIT_FILE_SIZE") {
-      next(LoiUngDung.yeuCauSai("File thời khóa biểu vượt quá dung lượng tối đa 10MB"));
+      next(
+        LoiUngDung.yeuCauSai(
+          "File thời khóa biểu vượt quá dung lượng tối đa 10MB",
+          taoChiTietImportThatBaiChoNhapThuCong("UPLOAD_FILE", { reasonCode: "FILE_TOO_LARGE" })
+        )
+      );
       return;
     }
 
-    next(LoiUngDung.yeuCauSai("Không thể tải file thời khóa biểu, vui lòng kiểm tra lại định dạng và dung lượng"));
+    next(
+      LoiUngDung.yeuCauSai(
+        "Không thể tải file thời khóa biểu, vui lòng kiểm tra lại định dạng và dung lượng",
+        taoChiTietImportThatBaiChoNhapThuCong("UPLOAD_FILE")
+      )
+    );
   });
 };
 
