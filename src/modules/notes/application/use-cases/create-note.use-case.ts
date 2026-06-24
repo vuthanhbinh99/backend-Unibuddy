@@ -26,7 +26,7 @@ export class XuLyTaoGhiChu {
       command.actorId,
       "Không thể tạo ghi chú cho môn học này vì không thuộc sinh viên trong môn học"
     );
-    await this.deps.dichVuTepDinhKemGhiChu.kiemTraTrungDuongDan(command.tepDinhKem);
+    await this.deps.dichVuTepDinhKemGhiChu.kiemTraTrungDuongDan(command.tepDinhKem, command.actorId);
 
     try {
       const ketQua = await this.deps.giaoDich.thucThiTrongGiaoDich(async (tx) => {

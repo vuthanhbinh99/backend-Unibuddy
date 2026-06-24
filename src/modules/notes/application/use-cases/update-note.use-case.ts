@@ -32,7 +32,11 @@ export class XuLyCapNhatGhiChu {
       command.actorId,
       "Không thể cập nhật ghi chú cho môn học không thuộc sinh viên"
     );
-    await this.deps.dichVuTepDinhKemGhiChu.kiemTraTrungDuongDan(command.tepDinhKem);
+    await this.deps.dichVuTepDinhKemGhiChu.kiemTraTrungDuongDan(
+      command.tepDinhKem,
+      command.actorId,
+      command.maGhiChu
+    );
 
     try {
       const ketQua = await this.deps.giaoDich.thucThiTrongGiaoDich(async (tx) => {
@@ -47,6 +51,16 @@ export class XuLyCapNhatGhiChu {
         );
 
         if (!ghiChu) {
+          await this.deps.dichVuGhiLogLoiGhiChu.ghiCanhBao({
+            actorId: command.actorId,
+            action: "NOTE_UPDATE_NOT_FOUND_DURING_TRANSACTION",
+            tableName: "ghi_chu",
+            recordId: command.maGhiChu,
+            message: "Sinh vien cap nhat ghi chu that bai vi ban ghi khong con ton tai trong transaction",
+            metadata: {
+              maGhiChu: command.maGhiChu
+            }
+          });
           throw LoiUngDung.khongTimThay("Không tìm thấy ghi chú");
         }
 

@@ -33,7 +33,21 @@ export class XuLyXoaGhiChu {
           tx
         );
 
-        await this.deps.khoGhiChu.xoaTheoMa(command.maGhiChu, tx);
+        const daXoa = await this.deps.khoGhiChu.xoaTheoMa(command.maGhiChu, tx);
+
+        if (!daXoa) {
+          await this.deps.dichVuGhiLogLoiGhiChu.ghiCanhBao({
+            actorId: command.actorId,
+            action: "NOTE_DELETE_NOT_FOUND_DURING_TRANSACTION",
+            tableName: "ghi_chu",
+            recordId: command.maGhiChu,
+            message: "Sinh vien xoa ghi chu that bai vi ban ghi khong con ton tai trong transaction",
+            metadata: {
+              maGhiChu: command.maGhiChu
+            }
+          });
+          throw LoiUngDung.khongTimThay("Không tìm thấy ghi chú");
+        }
 
         await this.deps.khoNhatKyHeThong.tao(
           {

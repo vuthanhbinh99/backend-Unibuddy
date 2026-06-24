@@ -1,4 +1,5 @@
 import type { BoThucThiTruyVan } from "../../../../shared/database/database.js";
+import type { KhoNhatKyHeThong } from "../../../audit-logs/application/ports/audit-log.repository.js";
 import { LoiUngDung } from "../../../../shared/errors/app-error.js";
 import type { TepDinhKemGhiChu } from "../../domain/notes.js";
 import type { DuLieuTaoTepDinhKemGhiChu, KhoGhiChu } from "../ports/note.repository.js";
@@ -6,6 +7,7 @@ import type { LenhTaoTepDinhKemGhiChu } from "../use-cases/note-use-case.types.j
 
 type PhuThuoc = {
   khoGhiChu: KhoGhiChu;
+  khoNhatKyHeThong: KhoNhatKyHeThong;
 };
 
 const chuyenTepDinhKem = (
@@ -24,11 +26,26 @@ const chuyenTepDinhKem = (
 export class DichVuTepDinhKemGhiChu {
   constructor(private readonly deps: PhuThuoc) {}
 
-  async kiemTraTrungDuongDan(dsTep: LenhTaoTepDinhKemGhiChu[]) {
+  async kiemTraTrungDuongDan(dsTep: LenhTaoTepDinhKemGhiChu[], actorId: string, maGhiChu?: string) {
     for (const tep of dsTep) {
       const tepTonTai = await this.deps.khoGhiChu.kiemTraDuongDanTaiLieuDaTonTai(tep.downloadUrl);
 
       if (tepTonTai) {
+        await this.deps.khoNhatKyHeThong.tao({
+          actorId,
+          level: "WARNING",
+          action: "NOTE_ATTACHMENT_DUPLICATE",
+          tableName: "tai_lieu",
+          recordId: maGhiChu,
+          message: "Sinh vien dinh kem tai lieu ghi chu that bai vi file da ton tai trong he thong",
+          metadata: {
+            maGhiChu: maGhiChu ?? null,
+            tenFile: tep.tenFile,
+            loaiFile: tep.loaiFile,
+            dungLuong: tep.dungLuong,
+            coDownloadUrl: true
+          }
+        });
         throw LoiUngDung.xungDot("Tệp đính kèm này đã tồn tại trong hệ thống");
       }
     }

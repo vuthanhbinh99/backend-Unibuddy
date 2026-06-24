@@ -15,6 +15,18 @@ export class DichVuQuyenGhiChu {
     const ghiChu = await this.deps.khoGhiChu.timTheoMa(maGhiChu);
 
     if (!ghiChu) {
+      await this.deps.khoNhatKyHeThong.tao({
+        actorId,
+        level: "WARNING",
+        action: "NOTE_NOT_FOUND",
+        tableName: "ghi_chu",
+        recordId: maGhiChu,
+        message: "Sinh vien thao tac ghi chu that bai vi khong tim thay ghi chu",
+        metadata: {
+          maGhiChu,
+          hanhDong
+        }
+      });
       throw LoiUngDung.khongTimThay("Không tìm thấy ghi chú");
     }
 
@@ -49,6 +61,17 @@ export class DichVuQuyenGhiChu {
     const hopLe = await this.deps.khoGhiChu.kiemTraMonHocThuocSinhVien(maMonHoc, actorId);
 
     if (!hopLe) {
+      await this.deps.khoNhatKyHeThong.tao({
+        actorId,
+        level: "WARNING",
+        action: "NOTE_COURSE_ACCESS_DENIED",
+        tableName: "mon_hoc",
+        recordId: maMonHoc,
+        message: "Sinh vien thao tac ghi chu that bai vi mon hoc khong thuoc sinh vien",
+        metadata: {
+          maMonHoc
+        }
+      });
       throw LoiUngDung.khongCoQuyen(thongBao);
     }
   }

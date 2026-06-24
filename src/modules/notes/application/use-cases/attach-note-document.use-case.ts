@@ -24,7 +24,7 @@ export class XuLyDinhKemTaiLieuGhiChu {
       command.maGhiChu,
       "đính kèm tài liệu vào"
     );
-    await this.deps.dichVuTepDinhKemGhiChu.kiemTraTrungDuongDan([command]);
+    await this.deps.dichVuTepDinhKemGhiChu.kiemTraTrungDuongDan([command], command.actorId, command.maGhiChu);
 
     try {
       const tepDinhKem = await this.deps.giaoDich.thucThiTrongGiaoDich(async (tx) => {
