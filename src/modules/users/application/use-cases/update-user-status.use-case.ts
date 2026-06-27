@@ -11,6 +11,7 @@ const THOI_HAN_MAT_KHAU_TAM_MS = 24 * 60 * 60 * 1000;
 
 export type LenhCapNhatTrangThaiNguoiDung = {
   actorId: string | null;
+  actorRoleCode?: string | null;
   userId: string;
   status: "HOAT_DONG" | "BI_KHOA" | "CHO_DOI_MAT_KHAU";
 };
@@ -33,6 +34,15 @@ export class XuLyCapNhatTrangThaiNguoiDung {
   constructor(private readonly deps: PhuThuoc) {}
 
   async thucThi(command: LenhCapNhatTrangThaiNguoiDung): Promise<KetQuaCapNhatTrangThaiNguoiDung> {
+    if (
+      command.actorRoleCode === "QUAN_TRI_VIEN" &&
+      command.actorId &&
+      command.actorId === command.userId &&
+      (command.status === "HOAT_DONG" || command.status === "BI_KHOA")
+    ) {
+      throw LoiUngDung.khongCoQuyen("Không thể tự khóa hoặc mở khóa tài khoản của chính mình");
+    }
+
     const user = await this.deps.khoNguoiDung.timTheoMa(command.userId);
 
     if (!user) {
@@ -40,6 +50,10 @@ export class XuLyCapNhatTrangThaiNguoiDung {
     }
 
     if (command.status === "CHO_DOI_MAT_KHAU") {
+      if (user.role.code !== "ADMIN") {
+        throw LoiUngDung.khongCoQuyen("Chỉ có thể cấp mật khẩu tạm cho tài khoản ADMIN");
+      }
+
       const tempPassword = taoMatKhauTamSecure(12, 16);
       const tempPasswordIssuedAt = new Date();
       const tempPasswordExpiresAt = new Date(tempPasswordIssuedAt.getTime() + THOI_HAN_MAT_KHAU_TAM_MS);

@@ -1777,6 +1777,30 @@ paths:
           $ref: '#/components/responses/UnauthorizedError'
         '403':
           $ref: '#/components/responses/ForbiddenError'
+  /auth/register:
+    post:
+      security: []
+      summary: Register student account
+      tags: [Auth]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterStudentRequest'
+      responses:
+        '201':
+          description: Student account registered
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RegisterStudentResponse'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '409':
+          $ref: '#/components/responses/ConflictError'
 
 components:
   securitySchemes:
@@ -1936,7 +1960,7 @@ components:
             - type: 'null'
         status:
           type: string
-          enum: [HOAT_DONG, BI_KHOA, CHUA_XAC_THUC]
+          enum: [HOAT_DONG, BI_KHOA, CHUA_XAC_THUC, CHO_DOI_MAT_KHAU]
         role:
           $ref: '#/components/schemas/Role'
         createdAt:
@@ -1958,6 +1982,58 @@ components:
           type: string
         deviceType:
           type: string
+    RegisterStudentRequest:
+      type: object
+      required: [email, password, fullName, maSinhVien]
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          minLength: 8
+        fullName:
+          type: string
+        maSinhVien:
+          type: string
+        phoneNumber:
+          type: string
+          nullable: true
+        avatarUrl:
+          type: string
+          nullable: true
+        maTruong:
+          type: integer
+          nullable: true
+        maTruongCode:
+          type: string
+          nullable: true
+        nganhHoc:
+          type: string
+          nullable: true
+        khoaHoc:
+          type: string
+          nullable: true
+    StudentProfile:
+      type: object
+      required: [maNguoiDung, maSinhVien, maTruong, maTruongCode, nganhHoc, khoaHoc]
+      properties:
+        maNguoiDung:
+          type: string
+        maSinhVien:
+          type: string
+        maTruong:
+          type: integer
+          nullable: true
+        maTruongCode:
+          type: string
+          nullable: true
+        nganhHoc:
+          type: string
+          nullable: true
+        khoaHoc:
+          type: string
+          nullable: true
     GoogleLoginRequest:
       type: object
       required: [idToken]
@@ -2002,6 +2078,21 @@ components:
                 refreshTokenExpiresAt:
                   type: string
                   format: date-time
+    RegisterStudentResponse:
+      allOf:
+        - $ref: '#/components/schemas/ApiSuccess'
+        - type: object
+          properties:
+            data:
+              type: object
+              required: [message, user, studentProfile]
+              properties:
+                message:
+                  type: string
+                user:
+                  $ref: '#/components/schemas/PublicUser'
+                studentProfile:
+                  $ref: '#/components/schemas/StudentProfile'
     RefreshTokenResponse:
       allOf:
         - $ref: '#/components/schemas/ApiSuccess'

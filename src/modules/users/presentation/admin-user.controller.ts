@@ -109,6 +109,7 @@ export class BoDieuKhienNguoiDungQuanTri {
     const body = (req.duLieuDaXacThuc as DuLieuCapNhatTrangThai).body;
     const ketQua = await this.boPhuThuoc.xuLyCapNhatTrangThaiNguoiDung.thucThi({
       actorId: req.user?.id ?? null,
+      actorRoleCode: req.user?.roleCode ?? null,
       userId,
       status: body.status
     });

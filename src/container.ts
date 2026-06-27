@@ -2,11 +2,13 @@ import { BoMaHoaMatKhauBcrypt } from "./modules/auth/infrastructure/bcrypt-passw
 import { BoKiemTraDanhTinhGoogleQuaAPI } from "./modules/auth/infrastructure/google-token-info.verifier.js";
 import { DichVuTokenJwt } from "./modules/auth/infrastructure/jwt-token.service.js";
 import { KhoPhienDangNhapPostgres } from "./modules/auth/infrastructure/postgres-session.repository.js";
+import { KhoDangKySinhVienPostgres } from "./modules/auth/infrastructure/postgres-student-registration.repository.js";
 import { KhoTamDatLaiMatKhauTrongBoNho } from "./modules/auth/infrastructure/in-memory-forgot-password-cache.js";
 import { XuLyDangNhapGoogle } from "./modules/auth/application/use-cases/google-login.use-case.js";
 import { XuLyDangNhap } from "./modules/auth/application/use-cases/login.use-case.js";
 import { XuLyDangXuat } from "./modules/auth/application/use-cases/logout.use-case.js";
 import { XuLyLamMoiToken } from "./modules/auth/application/use-cases/refresh-token.use-case.js";
+import { XuLyDangKySinhVien } from "./modules/auth/application/use-cases/register-student.use-case.js";
 import { XuLyDatLaiMatKhau } from "./modules/auth/application/use-cases/reset-forgot-password.use-case.js";
 import { XuLyYeuCauQuenMatKhau } from "./modules/auth/application/use-cases/request-forgot-password.use-case.js";
 import { XuLyXacThucMaQuenMatKhau } from "./modules/auth/application/use-cases/verify-forgot-password-code.use-case.js";
@@ -137,6 +139,7 @@ const taoBoPhuThuoc = () => {
 
   const khoNguoiDung = new KhoNguoiDungPostgres(coSoDuLieu);
   const khoPhienDangNhap = new KhoPhienDangNhapPostgres(coSoDuLieu);
+  const khoDangKySinhVien = new KhoDangKySinhVienPostgres(coSoDuLieu);
   const khoTamDatLaiMatKhau = new KhoTamDatLaiMatKhauTrongBoNho();
   const khoNhatKyHeThong = new KhoNhatKyHeThongPostgres(coSoDuLieu);
   const khoTruongHoc = new KhoTruongHocPostgres(coSoDuLieu);
@@ -178,6 +181,15 @@ const taoBoPhuThuoc = () => {
     dichVuToken,
     giaoDich,
     boKiemTraDanhTinhGoogle,
+    maCodeVaiTroSinhVienMacDinh: cauHinh.auth.maCodeVaiTroSinhVienMacDinh
+  });
+
+  const xuLyDangKySinhVien = new XuLyDangKySinhVien({
+    khoNguoiDung,
+    khoDangKySinhVien,
+    khoNhatKyHeThong,
+    boMaHoaMatKhau,
+    giaoDich,
     maCodeVaiTroSinhVienMacDinh: cauHinh.auth.maCodeVaiTroSinhVienMacDinh
   });
 
@@ -521,6 +533,7 @@ const taoBoPhuThuoc = () => {
     giaoDich,
     khoNguoiDung,
     khoPhienDangNhap,
+    khoDangKySinhVien,
     khoTamDatLaiMatKhau,
     khoNhatKyHeThong,
     khoTruongHoc,
@@ -545,6 +558,7 @@ const taoBoPhuThuoc = () => {
     dichVuDungLuongFirebase,
     xuLyDangNhap,
     xuLyDangNhapGoogle,
+    xuLyDangKySinhVien,
     xuLyLamMoiToken,
     xuLyDangXuat,
     xuLyYeuCauQuenMatKhau,
