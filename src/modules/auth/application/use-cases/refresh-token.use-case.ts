@@ -39,7 +39,7 @@ export class XuLyLamMoiToken {
     );
 
     if (!phienDangNhap) {
-      throw LoiUngDung.khongDuocXacThuc("lamMoiToken token bị sai hoặc hết hạn");
+      throw LoiUngDung.khongDuocXacThuc("Làm mới token bị sai hoặc hết hạn");
     }
 
     const user = await this.deps.khoNguoiDung.timTheoMa(phienDangNhap.userId);

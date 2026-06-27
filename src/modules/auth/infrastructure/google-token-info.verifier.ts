@@ -19,14 +19,28 @@ export class BoKiemTraDanhTinhGoogleQuaAPI implements BoKiemTraDanhTinhGoogle {
   async xacThucIdToken(idToken: string): Promise<DanhTinhGoogleDaXacMinh> {
     try {
       const phanHoi = await fetch(
-        `https://oauth2.googleapis.com/tokeninfo?id_token=${encodeURIComponent(idToken)}`
-      );
+  `https://oauth2.googleapis.com/tokeninfo?id_token=${encodeURIComponent(idToken)}`
+);
 
-      if (!phanHoi.ok) {
-        throw LoiUngDung.khongDuocXacThuc("Thẻ Google không hợp lệ");
-      }
+if (!phanHoi.ok) {
+  const text = await phanHoi.text();
+  console.error("Google tokeninfo failed:", {
+    status: phanHoi.status,
+    body: text
+  });
 
-      const duLieu = (await phanHoi.json()) as PhanHoiThongTinGoogle;
+  throw LoiUngDung.khongDuocXacThuc("Thẻ Google không hợp lệ");
+}
+
+const duLieu = (await phanHoi.json()) as PhanHoiThongTinGoogle;
+
+console.log("Google token info:", {
+  sub: duLieu.sub,
+  email: duLieu.email,
+  email_verified: duLieu.email_verified,
+  aud: duLieu.aud,
+  allowedAudiences: this.cacMaKhachDuocPhep
+});
 
       if (!duLieu.sub || !duLieu.email) {
         throw LoiUngDung.khongDuocXacThuc("Thẻ Google không hợp lệ");

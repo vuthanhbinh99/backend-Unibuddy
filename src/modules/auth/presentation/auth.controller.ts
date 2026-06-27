@@ -14,6 +14,21 @@ export const luocDoDangNhap = z.object({
   })
 });
 
+export const luocDoDangKySinhVien = z.object({
+  body: z.object({
+    email: z.string().email(),
+    password: z.string().min(8),
+    fullName: z.string().trim().min(1),
+    phoneNumber: z.string().trim().min(1).nullable().optional(),
+    avatarUrl: z.string().trim().min(1).nullable().optional(),
+    maSinhVien: z.string().trim().min(1),
+    maTruong: z.number().int().positive().nullable().optional(),
+    maTruongCode: z.string().trim().min(1).nullable().optional(),
+    nganhHoc: z.string().trim().min(1).nullable().optional(),
+    khoaHoc: z.string().trim().min(1).nullable().optional()
+  })
+});
+
 export const luocDoDangNhapGoogle = z.object({
   body: z.object({
     idToken: z.string().min(1),
@@ -57,6 +72,7 @@ export const luocDoDatLaiMatKhau = z.object({
 });
 
 type DuLieuDangNhap = z.infer<typeof luocDoDangNhap>["body"];
+type DuLieuDangKySinhVien = z.infer<typeof luocDoDangKySinhVien>["body"];
 type DuLieuDangNhapGoogle = z.infer<typeof luocDoDangNhapGoogle>["body"];
 type DuLieuLamMoiToken = z.infer<typeof luocDoLamMoiToken>["body"];
 type DuLieuDangXuat = z.infer<typeof luocDoDangXuat>["body"];
@@ -66,6 +82,25 @@ type DuLieuDatLaiMatKhau = z.infer<typeof luocDoDatLaiMatKhau>["body"];
 
 export class BoDieuKhienXacThuc {
   constructor(private readonly boPhuThuoc: BoPhuThuocUngDung) {}
+
+  dangKySinhVien = xuLyBatDongBo(async (req: Request, res: Response) => {
+    const body = (req.duLieuDaXacThuc as { body: DuLieuDangKySinhVien }).body;
+
+    const ketQua = await this.boPhuThuoc.xuLyDangKySinhVien.thucThi({
+      email: body.email,
+      password: body.password,
+      fullName: body.fullName,
+      phoneNumber: body.phoneNumber ?? null,
+      avatarUrl: body.avatarUrl ?? null,
+      maSinhVien: body.maSinhVien,
+      maTruong: body.maTruong ?? null,
+      maTruongCode: body.maTruongCode ?? null,
+      nganhHoc: body.nganhHoc ?? null,
+      khoaHoc: body.khoaHoc ?? null
+    });
+
+    res.status(201).json(daTao(ketQua));
+  });
 
   dangNhap = xuLyBatDongBo(async (req: Request, res: Response) => {
     const body = (req.duLieuDaXacThuc as { body: DuLieuDangNhap }).body;

@@ -4,6 +4,7 @@ import { xacThucYeuCau } from "../../../shared/validation/validate-request.js";
 import {
   BoDieuKhienXacThuc,
   luocDoDatLaiMatKhau,
+  luocDoDangKySinhVien,
   luocDoDangNhapGoogle,
   luocDoDangNhap,
   luocDoDangXuat,
@@ -16,6 +17,7 @@ export const xayDungTuyenDuongXacThuc = (boPhuThuoc: BoPhuThuocUngDung) => {
   const router = Router();
   const controller = new BoDieuKhienXacThuc(boPhuThuoc);
 
+  router.post("/register", xacThucYeuCau(luocDoDangKySinhVien), controller.dangKySinhVien);
   router.post("/login", xacThucYeuCau(luocDoDangNhap), controller.dangNhap);
   router.post("/google", xacThucYeuCau(luocDoDangNhapGoogle), controller.dangNhapGoogle);
   router.post("/refresh", xacThucYeuCau(luocDoLamMoiToken), controller.lamMoiToken);

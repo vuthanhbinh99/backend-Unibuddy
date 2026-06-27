@@ -61,7 +61,7 @@ export class XuLyDangNhapGoogle {
             action: "AUTH_LOCKED_ACCOUNT_GOOGLE_LOGIN_BLOCKED",
             tableName: "nguoi_dung",
             recordId: user.id,
-            message: "Locked account attempted Google dangNhap"
+            message: "Khóa tài khoản người dùng khi đăng nhập bằng Google",
           },
           tx
         );
@@ -108,7 +108,7 @@ export class XuLyDangNhapGoogle {
           level: "INFO",
           action: "AUTH_GOOGLE_LOGIN_SUCCESS",
           tableName: "phien_dang_nhap",
-          message: "NguoiDung logged in with Google",
+          message: "Người dùng đăng nhập thành công bằng Google",
           metadata: {
             googleSubject: danhTinhGoogle.subject,
             audience: danhTinhGoogle.audience
@@ -163,7 +163,7 @@ export class XuLyDangNhapGoogle {
           action: "AUTH_GOOGLE_ACCOUNT_CREATED",
           tableName: "nguoi_dung",
           recordId: nguoiDungMoi.id,
-          message: "Student account phanHoiDaTao from Google dangNhap",
+          message: "Tài khoản sinh viên được tạo từ đăng nhập Google",
           metadata: {
             email: input.email,
             googleSubject: input.googleSubject,
