@@ -4,6 +4,7 @@ import { type NguoiDungCongKhai, anhXaNguoiDungCongKhai } from "../../../users/d
 import type { BoQuanLyGiaoDich } from "../../../../shared/database/transaction.js";
 import { LoiUngDung } from "../../../../shared/errors/app-error.js";
 import type { BoMaHoaMatKhau } from "../ports/password-hasher.js";
+import type { BoKiemTraDoMatKhau} from "../ports/password-strength-checker.js";
 import type { HoSoSinhVienDangKy, KhoDangKySinhVien } from "../ports/student-registration.repository.js";
 
 export type LenhDangKySinhVien = {
@@ -32,6 +33,7 @@ type PhuThuoc = {
   khoDangKySinhVien: KhoDangKySinhVien;
   khoNhatKyHeThong: KhoNhatKyHeThong;
   boMaHoaMatKhau: BoMaHoaMatKhau;
+  boKiemTraDoMatKhau: BoKiemTraDoMatKhau;
   giaoDich: BoQuanLyGiaoDich;
   maCodeVaiTroSinhVienMacDinh: string;
 };
@@ -44,6 +46,16 @@ export class XuLyDangKySinhVien {
     const maSinhVien = command.maSinhVien.trim();
     const fullName = command.fullName.trim();
     const maTruongCodeInput = command.maTruongCode?.trim() || null;
+
+    const ketQuaMatKhau = await this.deps.boKiemTraDoMatKhau.kiemTra(command.password,
+      [email, fullName, maSinhVien]
+    );
+    if(ketQuaMatKhau.dat){
+      throw LoiUngDung.yeuCauSai("Mật khẩu không đủ mạnh: ", {
+        tieuChi: ketQuaMatKhau.tieuChi,
+        goiY: ketQuaMatKhau.goiY
+      });
+    }
 
     const truongHoc = await this.timTruongHocDangKy(command.maTruong ?? null, maTruongCodeInput);
     const maTruong = truongHoc?.maTruong ?? null;
