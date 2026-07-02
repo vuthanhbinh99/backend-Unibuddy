@@ -39,6 +39,3 @@ export class LoiUngDung extends Error {
     return new LoiUngDung(423, CacLoi.ACCOUNT_LOCKED, message);
   }
 }
-
-
-
