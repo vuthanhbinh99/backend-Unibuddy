@@ -3,23 +3,33 @@ import type { BoQuanLyGiaoDich } from "../../../../shared/database/transaction.j
 import { LoiUngDung } from "../../../../shared/errors/app-error.js";
 import { CacLoi } from "../../../../shared/errors/error-codes.js";
 import { nhatKy } from "../../../../shared/logger/logger.js";
+import type { DichVuLuuTruTep, TepDaLuuTru } from "../../../../shared/storage/file-storage.provider.js";
 import type { CheDoHienThiTaiLieu } from "../../domain/document.js";
 import type { KhoTaiLieu } from "../ports/document.repository.js";
+
+type TepTaiLen = {
+  buffer: Buffer;
+  originalName: string;
+  mimeType: string;
+  size: number;
+};
 
 export type LenhUploadChiaSeTaiLieu = {
   actorId: string;
   maMonHoc: string;
   tieuDe: string;
-  downloadUrl: string;
+  downloadUrl?: string;
   loaiFile: string;
   dungLuong: number;
   cheDoHienThi: CheDoHienThiTaiLieu;
+  tep?: TepTaiLen;
 };
 
 type PhuThuoc = {
   khoTaiLieu: KhoTaiLieu;
   khoNhatKyHeThong: KhoNhatKyHeThong;
   giaoDich: BoQuanLyGiaoDich;
+  dichVuLuuTruTep: DichVuLuuTruTep;
 };
 
 const layTenLoi = (error: unknown) => (error instanceof Error ? error.name : typeof error);
@@ -34,20 +44,38 @@ export class XuLyUploadChiaSeTaiLieu {
     );
 
     if (!monHocThuocSinhVien) {
-      await this.ghiNhatKyCanhBao(command, "DOCUMENT_UPLOAD_COURSE_FORBIDDEN", "Sinh vien chia se tai lieu that bai vi mon hoc khong thuoc sinh vien", {
-        maMonHoc: command.maMonHoc
-      });
+      await this.ghiNhatKyCanhBao(
+        command,
+        "DOCUMENT_UPLOAD_COURSE_FORBIDDEN",
+        "Sinh viên chia sẻ tài liệu thất bại vì môn học không thuộc quyền sở hữu của sinh viên",
+        { maMonHoc: command.maMonHoc }
+      );
       throw LoiUngDung.khongCoQuyen("Không thể chia sẻ tài liệu cho môn học này vì bạn không thuộc trong môn học");
     }
 
-    const taiLieuDaTonTai = await this.deps.khoTaiLieu.timTheoDuongDan(command.downloadUrl);
+    const tepDaLuu = command.tep ? await this.taiTepLenCloud(command) : null;
+    const downloadUrl = tepDaLuu?.publicUrl ?? command.downloadUrl;
+    const loaiFile = tepDaLuu?.mimeType ?? command.loaiFile;
+    const dungLuong = tepDaLuu?.size ?? command.dungLuong;
+
+    if (!downloadUrl) {
+      throw LoiUngDung.yeuCauSai("Thiếu file hoặc liên kết tài liệu cần lưu");
+    }
+
+    const taiLieuDaTonTai = await this.deps.khoTaiLieu.timTheoDuongDan(downloadUrl);
 
     if (taiLieuDaTonTai) {
-      await this.ghiNhatKyCanhBao(command, "DOCUMENT_UPLOAD_DUPLICATE_URL", "Sinh vien chia se tai lieu that bai vi tai lieu da ton tai trong he thong", {
-        maMonHoc: command.maMonHoc,
-        existingMaTaiLieu: taiLieuDaTonTai.maTaiLieu
-      });
-      throw LoiUngDung.xungDot("Tài liệu này đã được lưu trong hệ thống, vui lòng kiểm tra lại đường dẫn tải về");
+      await this.xoaTepCloudSauLoiNeuCo(tepDaLuu);
+      await this.ghiNhatKyCanhBao(
+        command,
+        "DOCUMENT_UPLOAD_DUPLICATE_URL",
+        "Sinh viên chia sẻ tài liệu thất bại vì tài liệu đã tồn tại trong hệ thống",
+        {
+          maMonHoc: command.maMonHoc,
+          existingMaTaiLieu: taiLieuDaTonTai.maTaiLieu
+        }
+      );
+      throw LoiUngDung.xungDot("Tài liệu đã tồn tại trong hệ thống, vui lòng kiểm tra lại");
     }
 
     try {
@@ -58,10 +86,10 @@ export class XuLyUploadChiaSeTaiLieu {
             maMonHoc: command.maMonHoc,
             maNhom: null,
             maGhiChu: null,
-            duongDanLuuTru: command.downloadUrl,
+            duongDanLuuTru: downloadUrl,
             tenFile: command.tieuDe,
-            loaiFile: command.loaiFile,
-            dungLuong: command.dungLuong,
+            loaiFile,
+            dungLuong,
             cheDoHienThi: command.cheDoHienThi,
             trangThai: "KHA_DUNG"
           },
@@ -75,13 +103,14 @@ export class XuLyUploadChiaSeTaiLieu {
             action: "DOCUMENT_UPLOADED",
             tableName: "tai_lieu",
             recordId: taiLieu.maTaiLieu,
-            message: "Sinh viên upload tài liệu  thành công",
+            message: "Sinh viên upload tài liệu thành công",
             metadata: {
               maMonHoc: command.maMonHoc,
               tenFile: command.tieuDe,
-              loaiFile: command.loaiFile,
-              dungLuong: command.dungLuong,
+              loaiFile,
+              dungLuong,
               cheDoHienThi: command.cheDoHienThi,
+              storageProvider: tepDaLuu?.provider ?? "external_url",
               coDownloadUrl: true
             }
           },
@@ -91,12 +120,44 @@ export class XuLyUploadChiaSeTaiLieu {
         return taiLieu;
       });
     } catch (error) {
+      await this.xoaTepCloudSauLoiNeuCo(tepDaLuu);
       await this.ghiNhatKyLoiLuuThongTin(command, error);
-      throw new LoiUngDung(
-        500,
-        CacLoi.INTERNAL_ERROR,
-        "Hệ thống bận không thể chia sẻ tài liệu lúc này"
-      );
+      throw new LoiUngDung(500, CacLoi.INTERNAL_ERROR, "Hệ thống không thể chia sẻ tài liệu lúc này");
+    }
+  }
+
+  private async taiTepLenCloud(command: LenhUploadChiaSeTaiLieu) {
+    if (!command.tep) {
+      return null;
+    }
+
+    try {
+      return await this.deps.dichVuLuuTruTep.taiLen({
+        buffer: command.tep.buffer,
+        originalName: command.tep.originalName,
+        mimeType: command.tep.mimeType,
+        size: command.tep.size,
+        ownerId: command.actorId,
+        folder: command.tep.mimeType.startsWith("video/") ? "videos" : "documents"
+      });
+    } catch (error) {
+      await this.ghiNhatKyLoiUploadCloud(command, error);
+      throw new LoiUngDung(500, CacLoi.INTERNAL_ERROR, "Không thể tải file lên Cloud lúc này");
+    }
+  }
+
+  private async xoaTepCloudSauLoiNeuCo(tepDaLuu: TepDaLuuTru | null) {
+    if (!tepDaLuu) {
+      return;
+    }
+
+    try {
+      await this.deps.dichVuLuuTruTep.xoa(tepDaLuu.storagePath);
+    } catch (cleanupError) {
+      nhatKy.error("Không thể xóa file Cloud lúc này sau khi lưu metadata thất bại", {
+        error: cleanupError,
+        storagePath: tepDaLuu.storagePath
+      });
     }
   }
 
@@ -107,7 +168,7 @@ export class XuLyUploadChiaSeTaiLieu {
         level: "ERROR",
         action: "DOCUMENT_UPLOAD_METADATA_FAILED",
         tableName: "tai_lieu",
-        message: "Lỗi Lưu thông tin tài liệu vào database",
+        message: "Lỗi lưu thông tin tài liệu vào database",
         metadata: {
           maMonHoc: command.maMonHoc,
           tenFile: command.tieuDe,
@@ -119,6 +180,30 @@ export class XuLyUploadChiaSeTaiLieu {
       });
     } catch (auditError) {
       nhatKy.error("Không thể ghi log upload tài liệu", {
+        error: auditError,
+        originalErrorName: layTenLoi(error)
+      });
+    }
+  }
+
+  private async ghiNhatKyLoiUploadCloud(command: LenhUploadChiaSeTaiLieu, error: unknown) {
+    try {
+      await this.deps.khoNhatKyHeThong.tao({
+        actorId: command.actorId,
+        level: "ERROR",
+        action: "DOCUMENT_UPLOAD_CLOUDINARY_FAILED",
+        tableName: "tai_lieu",
+        message: "Lỗi upload file tài liệu lên Cloudinary",
+        metadata: {
+          maMonHoc: command.maMonHoc,
+          tenFile: command.tieuDe,
+          loaiFile: command.loaiFile,
+          dungLuong: command.dungLuong,
+          errorName: layTenLoi(error)
+        }
+      });
+    } catch (auditError) {
+      nhatKy.error("Không thể ghi log lỗi upload Cloudinary", {
         error: auditError,
         originalErrorName: layTenLoi(error)
       });
@@ -147,7 +232,7 @@ export class XuLyUploadChiaSeTaiLieu {
         }
       });
     } catch (auditError) {
-      nhatKy.error("KhÃ´ng thá»ƒ ghi log cáº£nh bÃ¡o upload tÃ i liá»‡u", {
+      nhatKy.error("Không thể ghi log cảnh báo upload tài liệu", {
         error: auditError,
         action
       });

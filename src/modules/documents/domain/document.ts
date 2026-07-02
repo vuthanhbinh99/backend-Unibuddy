@@ -17,3 +17,11 @@ export type TaiLieu = {
   createdAt: Date;
   updatedAt: Date;
 };
+
+export type TaiLieuLuuTruSinhVien = TaiLieu & {
+  tenNguoiTaiLen: string | null;
+  emailNguoiTaiLen: string | null;
+  maMon: string | null;
+  tenMonHoc: string | null;
+  tenNhom: string | null;
+};
