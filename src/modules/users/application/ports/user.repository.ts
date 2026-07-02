@@ -30,6 +30,17 @@ export type DuLieuCapNhatTrangThaiNguoiDung = {
   temporaryPasswordCreatedAt?: Date | null;
 };
 
+export type DuLieuCapNhatAnhDaiDienNguoiDung = {
+  userId: string;
+  avatarUrl: string;
+};
+
+export type DuLieuCapNhatThongTinNguoiDung = {
+  userId: string;
+  fullName: string;
+  phoneNumber?: string | null;
+};
+
 export interface KhoNguoiDung {
   lietKe(boThucThi?: BoThucThiTruyVan): Promise<NguoiDungQuanTri[]>;
   timTheoEmail(email: string, boThucThi?: BoThucThiTruyVan): Promise<NguoiDung | null>;
@@ -41,5 +52,12 @@ export interface KhoNguoiDung {
     data: DuLieuCapNhatTrangThaiNguoiDung,
     boThucThi?: BoThucThiTruyVan
   ): Promise<NguoiDung | null>;
+  capNhatThongTin(
+    data: DuLieuCapNhatThongTinNguoiDung,
+    boThucThi?: BoThucThiTruyVan
+  ): Promise<NguoiDung | null>;
+  capNhatAnhDaiDien(
+    data: DuLieuCapNhatAnhDaiDienNguoiDung,
+    boThucThi?: BoThucThiTruyVan
+  ): Promise<NguoiDung | null>;
 }
-

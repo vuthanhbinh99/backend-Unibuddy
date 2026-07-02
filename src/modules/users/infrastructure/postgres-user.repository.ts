@@ -1,7 +1,9 @@
 import { v7 as uuidv7 } from "uuid";
 import type { BoThucThiTruyVan } from "../../../shared/database/database.js";
 import type {
+  DuLieuCapNhatAnhDaiDienNguoiDung,
   DuLieuCapNhatMatKhauNguoiDung,
+  DuLieuCapNhatThongTinNguoiDung,
   DuLieuCapNhatTrangThaiNguoiDung,
   DuLieuCapNhatVaiTroNguoiDung,
   DuLieuTaoNguoiDung,
@@ -265,6 +267,69 @@ export class KhoNguoiDungPostgres implements KhoNguoiDung {
           (SELECT ten_vai_tro FROM vai_tro WHERE ma_vai_tro = nguoi_dung.ma_vai_tro) AS "roleName"
       `,
       [data.userId, data.status, data.temporaryPasswordCreatedAt ?? null]
+    );
+
+    return ketQua.rows[0] ? anhXaNguoiDung(ketQua.rows[0]) : null;
+  }
+
+  async capNhatThongTin(
+    data: DuLieuCapNhatThongTinNguoiDung,
+    boThucThi: BoThucThiTruyVan = this.coSoDuLieu
+  ) {
+    const ketQua = await boThucThi.truyVan<DongNguoiDung>(
+      `
+        UPDATE nguoi_dung
+        SET ho_ten = $2,
+            so_dien_thoai = $3,
+            thoi_gian_cap_nhat = NOW()
+        WHERE ma_nguoi_dung = $1
+        RETURNING
+          ma_nguoi_dung AS "id",
+          email AS "email",
+          mat_khau AS "passwordHash",
+          ho_ten AS "fullName",
+          so_dien_thoai AS "phoneNumber",
+          anh_dai_dien AS "avatarUrl",
+          trang_thai AS "status",
+          thoi_gian_tao_mat_khau_tam AS "temporaryPasswordCreatedAt",
+          thoi_gian_tao AS "createdAt",
+          thoi_gian_cap_nhat AS "updatedAt",
+          ma_vai_tro AS "roleId",
+          (SELECT ma_code FROM vai_tro WHERE ma_vai_tro = nguoi_dung.ma_vai_tro) AS "roleCode",
+          (SELECT ten_vai_tro FROM vai_tro WHERE ma_vai_tro = nguoi_dung.ma_vai_tro) AS "roleName"
+      `,
+      [data.userId, data.fullName, data.phoneNumber ?? null]
+    );
+
+    return ketQua.rows[0] ? anhXaNguoiDung(ketQua.rows[0]) : null;
+  }
+
+  async capNhatAnhDaiDien(
+    data: DuLieuCapNhatAnhDaiDienNguoiDung,
+    boThucThi: BoThucThiTruyVan = this.coSoDuLieu
+  ) {
+    const ketQua = await boThucThi.truyVan<DongNguoiDung>(
+      `
+        UPDATE nguoi_dung
+        SET anh_dai_dien = $2,
+            thoi_gian_cap_nhat = NOW()
+        WHERE ma_nguoi_dung = $1
+        RETURNING
+          ma_nguoi_dung AS "id",
+          email AS "email",
+          mat_khau AS "passwordHash",
+          ho_ten AS "fullName",
+          so_dien_thoai AS "phoneNumber",
+          anh_dai_dien AS "avatarUrl",
+          trang_thai AS "status",
+          thoi_gian_tao_mat_khau_tam AS "temporaryPasswordCreatedAt",
+          thoi_gian_tao AS "createdAt",
+          thoi_gian_cap_nhat AS "updatedAt",
+          ma_vai_tro AS "roleId",
+          (SELECT ma_code FROM vai_tro WHERE ma_vai_tro = nguoi_dung.ma_vai_tro) AS "roleCode",
+          (SELECT ten_vai_tro FROM vai_tro WHERE ma_vai_tro = nguoi_dung.ma_vai_tro) AS "roleName"
+      `,
+      [data.userId, data.avatarUrl]
     );
 
     return ketQua.rows[0] ? anhXaNguoiDung(ketQua.rows[0]) : null;
