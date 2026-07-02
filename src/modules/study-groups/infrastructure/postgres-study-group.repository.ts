@@ -6,7 +6,12 @@ import type {
   KhoNhomHocTap,
   PhamViMonHocNhomHocTap
 } from "../application/ports/study-group.repository.js";
-import type { NhomHocTap, ThanhVienNhomHocTap, VaiTroNhomHocTap } from "../domain/study-group.js";
+import type {
+  NhomHocTap,
+  NhomHocTapCuaSinhVien,
+  ThanhVienNhomHocTap,
+  VaiTroNhomHocTap
+} from "../domain/study-group.js";
 
 type DongNhomHocTap = {
   maNhom: string;
@@ -29,6 +34,12 @@ type DongThanhVienNhom = {
   email: string;
 };
 
+type DongNhomHocTapCuaSinhVien = DongNhomHocTap & {
+  vaiTroTrongNhom: VaiTroNhomHocTap;
+  thoiGianThamGia: Date;
+  soThanhVien: string | number;
+};
+
 const anhXaNhom = (row: DongNhomHocTap): NhomHocTap => ({
   maNhom: row.maNhom,
   nguoiTao: row.nguoiTao,
@@ -39,6 +50,13 @@ const anhXaNhom = (row: DongNhomHocTap): NhomHocTap => ({
   linkNhomChat: row.linkNhomChat,
   createdAt: row.createdAt,
   updatedAt: row.updatedAt
+});
+
+const anhXaNhomCuaSinhVien = (row: DongNhomHocTapCuaSinhVien): NhomHocTapCuaSinhVien => ({
+  ...anhXaNhom(row),
+  vaiTroTrongNhom: row.vaiTroTrongNhom,
+  thoiGianThamGia: row.thoiGianThamGia,
+  soThanhVien: Number(row.soThanhVien ?? 0)
 });
 
 const anhXaThanhVien = (row: DongThanhVienNhom): ThanhVienNhomHocTap => ({
@@ -78,6 +96,47 @@ const cauTruyVanThanhVienCoSo = `
 
 export class KhoNhomHocTapPostgres implements KhoNhomHocTap {
   constructor(private readonly coSoDuLieu: BoThucThiTruyVan) {}
+
+  async lietKeTheoThanhVien(maNguoiDung: string, boThucThi: BoThucThiTruyVan = this.coSoDuLieu) {
+    const ketQua = await boThucThi.truyVan<DongNhomHocTapCuaSinhVien>(
+      `
+        SELECT
+          nht.ma_nhom AS "maNhom",
+          nht.nguoi_tao AS "nguoiTao",
+          nht.ten_nhom AS "tenNhom",
+          nht.ma_mon AS "maMon",
+          nht.ma_truong AS "maTruong",
+          nht.ma_tham_gia AS "maThamGia",
+          nht.link_nhom_chat AS "linkNhomChat",
+          nht.thoi_gian_tao AS "createdAt",
+          nht.thoi_gian_cap_nhat AS "updatedAt",
+          tvn.vai_tro_trong_nhom AS "vaiTroTrongNhom",
+          tvn.thoi_gian_tham_gia AS "thoiGianThamGia",
+          COUNT(tvn_all.ma_nguoi_dung)::int AS "soThanhVien"
+        FROM nhom_hoc_tap nht
+        INNER JOIN thanh_vien_nhom tvn
+          ON tvn.ma_nhom = nht.ma_nhom
+         AND tvn.ma_nguoi_dung = $1
+        LEFT JOIN thanh_vien_nhom tvn_all ON tvn_all.ma_nhom = nht.ma_nhom
+        GROUP BY
+          nht.ma_nhom,
+          nht.nguoi_tao,
+          nht.ten_nhom,
+          nht.ma_mon,
+          nht.ma_truong,
+          nht.ma_tham_gia,
+          nht.link_nhom_chat,
+          nht.thoi_gian_tao,
+          nht.thoi_gian_cap_nhat,
+          tvn.vai_tro_trong_nhom,
+          tvn.thoi_gian_tham_gia
+        ORDER BY tvn.thoi_gian_tham_gia DESC, nht.thoi_gian_cap_nhat DESC
+      `,
+      [maNguoiDung]
+    );
+
+    return ketQua.rows.map(anhXaNhomCuaSinhVien);
+  }
 
   async timTheoMa(maNhom: string, boThucThi: BoThucThiTruyVan = this.coSoDuLieu) {
     const ketQua = await boThucThi.truyVan<DongNhomHocTap>(

@@ -31,6 +31,12 @@ export const luocDoTaoNhomHocTap = z.object({
   query: z.object({})
 });
 
+export const luocDoDanhSachNhomHocTap = z.object({
+  body: z.object({}),
+  params: z.object({}),
+  query: z.object({})
+});
+
 export const luocDoThamGiaNhomHocTap = z.object({
   body: z.object({
     maThamGia: z
@@ -78,6 +84,13 @@ type DuLieuXoaNhomHocTap = DuLieuCoMaNhom & {
 
 export class BoDieuKhienNhomHocTap {
   constructor(private readonly boPhuThuoc: BoPhuThuocUngDung) {}
+
+  danhSach = xuLyBatDongBo(async (req: Request, res: Response) => {
+    const actorId = this.layActorId(req);
+    const ketQua = await this.boPhuThuoc.xuLyDanhSachNhomHocTap.thucThi({ actorId });
+
+    res.status(200).json(thanhCong(ketQua));
+  });
 
   tao = xuLyBatDongBo(async (req: Request, res: Response) => {
     const actorId = this.layActorId(req);

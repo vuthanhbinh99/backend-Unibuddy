@@ -4,6 +4,7 @@ import { xacThucYeuCau } from "../../../shared/validation/validate-request.js";
 import { BoTrungGianXacThuc } from "../../auth/presentation/auth.middleware.js";
 import {
   BoDieuKhienNhomHocTap,
+  luocDoDanhSachNhomHocTap,
   luocDoRoiNhomHocTap,
   luocDoTaoNhomHocTap,
   luocDoThamGiaNhomHocTap,
@@ -19,6 +20,7 @@ export const xayDungTuyenDuongNhomHocTap = (boPhuThuoc: BoPhuThuocUngDung) => {
 
   router.use(auth.yeuCauVaiTro(SINH_VIEN));
 
+  router.get("/", xacThucYeuCau(luocDoDanhSachNhomHocTap), controller.danhSach);
   router.post("/", xacThucYeuCau(luocDoTaoNhomHocTap), controller.tao);
   router.post("/join", xacThucYeuCau(luocDoThamGiaNhomHocTap), controller.thamGia);
   router.post("/:maNhom/leave", xacThucYeuCau(luocDoRoiNhomHocTap), controller.roi);

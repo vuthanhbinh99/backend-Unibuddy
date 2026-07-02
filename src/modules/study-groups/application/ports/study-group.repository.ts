@@ -1,5 +1,10 @@
 import type { BoThucThiTruyVan } from "../../../../shared/database/database.js";
-import type { NhomHocTap, ThanhVienNhomHocTap, VaiTroNhomHocTap } from "../../domain/study-group.js";
+import type {
+  NhomHocTap,
+  NhomHocTapCuaSinhVien,
+  ThanhVienNhomHocTap,
+  VaiTroNhomHocTap
+} from "../../domain/study-group.js";
 
 export type DuLieuTaoNhomHocTap = {
   nguoiTao: string;
@@ -23,6 +28,7 @@ export type DuLieuTaoThongBaoNhomHocTap = {
 };
 
 export interface KhoNhomHocTap {
+  lietKeTheoThanhVien(maNguoiDung: string, boThucThi?: BoThucThiTruyVan): Promise<NhomHocTapCuaSinhVien[]>;
   timTheoMa(maNhom: string, boThucThi?: BoThucThiTruyVan): Promise<NhomHocTap | null>;
   timTheoMaThamGia(maThamGia: string, boThucThi?: BoThucThiTruyVan): Promise<NhomHocTap | null>;
   kiemTraTenNhomDaTonTai(

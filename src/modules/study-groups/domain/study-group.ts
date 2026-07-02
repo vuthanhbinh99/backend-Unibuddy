@@ -12,6 +12,12 @@ export type NhomHocTap = {
   updatedAt: Date;
 };
 
+export type NhomHocTapCuaSinhVien = NhomHocTap & {
+  vaiTroTrongNhom: VaiTroNhomHocTap;
+  thoiGianThamGia: Date;
+  soThanhVien: number;
+};
+
 export type ThanhVienNhomHocTap = {
   maNhom: string;
   maNguoiDung: string;
