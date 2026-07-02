@@ -14,25 +14,25 @@ export class XuLyXemDungLuongLuuTru {
 
   async thucThi(actorId: string): Promise<ThongKeDungLuongHeThong> {
     const noiBo = await this.deps.khoDungLuongHeThong.layThongKeNoiBo();
-    let firebase: ThongKeDungLuongFirebase;
+    let cloudStorage: ThongKeDungLuongFirebase;
 
     try {
-      firebase = await this.deps.dichVuDungLuongFirebase.layThongKeDungLuong();
+      cloudStorage = await this.deps.dichVuDungLuongFirebase.layThongKeDungLuong();
     } catch (error) {
-      firebase = {
+      cloudStorage = {
         configured: true,
         bucket: null,
         totalBytes: 0,
         fileCount: 0,
         categories: [],
-        error: "FIREBASE_STORAGE_UNAVAILABLE"
+        error: "CLOUDINARY_STORAGE_UNAVAILABLE"
       };
 
       await this.deps.khoNhatKyHeThong.tao({
         actorId,
         level: "ERROR",
-        action: "SYSTEM_STORAGE_USAGE_FIREBASE_FAILED",
-        message: "Lấy thông kê dung lượng Firebase Storage thất bại",
+        action: "SYSTEM_STORAGE_USAGE_CLOUDINARY_FAILED",
+        message: "Lấy thông tin dung lượng lưu trữ Cloudinary thất bại",
         metadata: {
           errorName: error instanceof Error ? error.name : "UnknownError"
         }
@@ -47,14 +47,14 @@ export class XuLyXemDungLuongLuuTru {
       metadata: {
         databaseBytes: noiBo.database.totalBytes,
         documentBytes: noiBo.documents.totalBytes,
-        firebaseConfigured: firebase.configured,
-        firebaseBytes: firebase.totalBytes
+        cloudinaryConfigured: cloudStorage.configured,
+        cloudinaryBytes: cloudStorage.totalBytes
       }
     });
 
     return {
       ...noiBo,
-      firebase
+      firebase: cloudStorage
     };
   }
 }
