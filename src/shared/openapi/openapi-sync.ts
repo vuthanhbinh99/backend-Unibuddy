@@ -56,6 +56,10 @@ function layTag(duongDan: string) {
     return "Users";
   }
 
+  if (duongDan.startsWith("/notifications")) {
+    return "User Notifications";
+  }
+
   if (duongDan.startsWith("/admin/users")) {
     return "Admin Users";
   }
@@ -165,9 +169,29 @@ function layMoTa(duongDan: string, method: string) {
   if (duongDan === "/users/me") {
     return "Current user profile";
   }
+  
+    if (duongDan === "/users/me/feedback") {
+      return "Submit user feedback";
+    }
+
+  if (duongDan === "/notifications") {
+    return "List user notifications";
+  }
+
+  if (duongDan === "/notifications/read-all") {
+    return "Mark all user notifications as read";
+  }
+
+  if (duongDan === "/notifications/{maThongBao}/read") {
+    return "Mark user notification as read";
+  }
 
   if (duongDan === "/student/documents") {
-    return "Upload shared document";
+    return method === "get" ? "List student storage documents" : "Upload shared document";
+  }
+
+  if (duongDan === "/student/documents/{maTaiLieu}") {
+    return "Delete student storage document";
   }
 
   if (duongDan === "/notes") {
@@ -437,6 +461,10 @@ function layMaTrangThai(duongDan: string, method: string) {
   if (duongDan === "/notes" && method === "post") {
     return "201";
   }
+  
+    if (duongDan === "/users/me/feedback" && method === "post") {
+      return "201";
+    }
 
   if (duongDan === "/attachments" && method === "post") {
     return "201";

@@ -16,6 +16,7 @@ import { xayDungTuyenDuongLichHoc } from "./modules/schedules/presentation/sched
 import { xayDungTuyenDuongTruongHoc } from "./modules/schools/presentation/school.routes.js";
 import { xayDungTuyenDuongNhomHocTap } from "./modules/study-groups/presentation/study-group.routes.js";
 import { xayDungTuyenDuongThongBaoHeThong } from "./modules/notifications/presentation/system-notification.routes.js";
+import { xayDungTuyenDuongThongBaoNguoiDung } from "./modules/notifications/presentation/user-notification.routes.js";
 import { xayDungTuyenDuongQuanTriHeThong } from "./modules/system-admin/presentation/system-admin.routes.js";
 import { xayDungTuyenDuongNguoiDungQuanTri } from "./modules/users/presentation/admin-user.routes.js";
 import { xayDungTuyenDuongNguoiDung } from "./modules/users/presentation/user.routes.js";
@@ -34,6 +35,7 @@ export const xayDungTuyenDuong = () => {
   router.use("/schedules", xayDungTuyenDuongLichHoc(boPhuThuoc));
   router.use("/diem-so", xayDungTuyenDuongDiemSo(boPhuThuoc));
   router.use("/study-groups", xayDungTuyenDuongNhomHocTap(boPhuThuoc));
+  router.use("/notifications", xayDungTuyenDuongThongBaoNguoiDung(boPhuThuoc));
   router.use("/kanban", xayDungTuyenDuongKanban(boPhuThuoc));
   router.use("/flashcard-decks", xayDungTuyenDuongBoFlashcard(boPhuThuoc));
   router.use("/flashcards", xayDungTuyenDuongFlashcard(boPhuThuoc));

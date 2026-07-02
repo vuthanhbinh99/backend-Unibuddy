@@ -28,8 +28,14 @@ const envSchema = z.object({
   FIREBASE_PROJECT_ID: z.string().default(""),
   FIREBASE_CLIENT_EMAIL: z.string().default(""),
   FIREBASE_PRIVATE_KEY: z.string().default(""),
-  FIREBASE_STORAGE_BUCKET: z.string().default(""),
-  FIREBASE_SERVICE_ACCOUNT_JSON: z.string().default("")
+  FIREBASE_SERVICE_ACCOUNT_JSON: z.string().default(""),
+  CLOUDINARY_CLOUD_NAME: z.string().default(""),
+  CLOUDINARY_API_KEY: z.string().default(""),
+  CLOUDINARY_API_SECRET: z.string().default(""),
+  CLOUDINARY_FOLDER_PREFIX: z.string().default("unibuddy"),
+  CLOUDINARY_MAX_AVATAR_MB: z.coerce.number().positive().default(10),
+  CLOUDINARY_MAX_DOCUMENT_MB: z.coerce.number().positive().default(20),
+  CLOUDINARY_MAX_VIDEO_MB: z.coerce.number().positive().default(100)
 });
 
 const parsedEnv = envSchema.safeParse(process.env);
@@ -47,6 +53,8 @@ const corsOrigins =
 const googleClientIds = parsedEnv.data.GOOGLE_CLIENT_IDS.split(",")
   .map((clientId) => clientId.trim())
   .filter(Boolean);
+
+const megabytesToBytes = (value: number) => Math.floor(value * 1024 * 1024);
 
 export const cauHinh = {
   nodeEnv: parsedEnv.data.NODE_ENV,
@@ -81,10 +89,17 @@ export const cauHinh = {
     privateKey: parsedEnv.data.FIREBASE_PRIVATE_KEY
       ? parsedEnv.data.FIREBASE_PRIVATE_KEY.replace(/\\n/g, "\n")
       : null,
-    storageBucket: parsedEnv.data.FIREBASE_STORAGE_BUCKET || null,
     serviceAccountJson: parsedEnv.data.FIREBASE_SERVICE_ACCOUNT_JSON || null
+  },
+  cloudinary: {
+    cloudName: parsedEnv.data.CLOUDINARY_CLOUD_NAME || null,
+    apiKey: parsedEnv.data.CLOUDINARY_API_KEY || null,
+    apiSecret: parsedEnv.data.CLOUDINARY_API_SECRET || null,
+    folderPrefix: parsedEnv.data.CLOUDINARY_FOLDER_PREFIX,
+    maxAvatarBytes: megabytesToBytes(parsedEnv.data.CLOUDINARY_MAX_AVATAR_MB),
+    maxDocumentBytes: megabytesToBytes(parsedEnv.data.CLOUDINARY_MAX_DOCUMENT_MB),
+    maxVideoBytes: megabytesToBytes(parsedEnv.data.CLOUDINARY_MAX_VIDEO_MB)
   },
   corsOrigins
 } as const;
-
 
