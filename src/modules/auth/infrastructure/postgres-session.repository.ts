@@ -1,7 +1,11 @@
 import { v7 as uuidv7 } from "uuid";
 import type { BoThucThiTruyVan } from "../../../shared/database/database.js";
 import type { KhoPhienDangNhap } from "../application/ports/session.repository.js";
-import type { DuLieuTaoPhienDangNhap, PhienDangNhap } from "../domain/session.js";
+import type {
+  DuLieuTaoPhienDangNhap,
+  PhienDangNhap,
+  PhienDangNhapCongKhai
+} from "../domain/session.js";
 
 type DongPhienDangNhap = {
   id: string;
@@ -13,6 +17,16 @@ type DongPhienDangNhap = {
   userAgent: string | null;
   expiresAt: Date;
   revokedAt: Date | null;
+  lastActiveAt: Date;
+  createdAt: Date;
+};
+
+type DongPhienDangNhapCongKhai = {
+  id: string;
+  deviceType: string | null;
+  ipAddress: string | null;
+  userAgent: string | null;
+  expiresAt: Date;
   lastActiveAt: Date;
   createdAt: Date;
 };
@@ -29,6 +43,20 @@ const anhXaPhienDangNhap = (row: DongPhienDangNhap): PhienDangNhap => ({
   revokedAt: row.revokedAt,
   lastActiveAt: row.lastActiveAt,
   createdAt: row.createdAt
+});
+
+const anhXaPhienDangNhapCongKhai = (
+  row: DongPhienDangNhapCongKhai,
+  isCurrent: boolean
+): PhienDangNhapCongKhai => ({
+  id: row.id,
+  deviceType: row.deviceType,
+  ipAddress: row.ipAddress,
+  userAgent: row.userAgent,
+  expiresAt: row.expiresAt,
+  lastActiveAt: row.lastActiveAt,
+  createdAt: row.createdAt,
+  isCurrent
 });
 
 export class KhoPhienDangNhapPostgres implements KhoPhienDangNhap {
@@ -138,6 +166,54 @@ export class KhoPhienDangNhapPostgres implements KhoPhienDangNhap {
       `,
       [userId]
     );
+  }
+
+  async lietKeTheoMaNguoiDung(
+    userId: string,
+    currentRefreshTokenHash?: string,
+    boThucThi: BoThucThiTruyVan = this.coSoDuLieu
+  ) {
+    const ketQua = await boThucThi.truyVan<DongPhienDangNhapCongKhai & { refreshTokenHash: string }>(
+      `
+        SELECT
+          ma_phien AS "id",
+          loai_thiet_bi AS "deviceType",
+          ip_address::text AS "ipAddress",
+          user_agent AS "userAgent",
+          thoi_gian_het_han AS "expiresAt",
+          lan_hoat_dong_cuoi AS "lastActiveAt",
+          thoi_gian_tao AS "createdAt",
+          refresh_token AS "refreshTokenHash"
+        FROM phien_dang_nhap
+        WHERE ma_nguoi_dung = $1
+          AND thoi_gian_thu_hoi IS NULL
+        ORDER BY lan_hoat_dong_cuoi DESC, thoi_gian_tao DESC
+      `,
+      [userId]
+    );
+
+    return ketQua.rows.map((row) =>
+      anhXaPhienDangNhapCongKhai(row, row.refreshTokenHash === currentRefreshTokenHash)
+    );
+  }
+
+  async thuHoiTheoMaPhien(
+    sessionId: string,
+    userId: string,
+    boThucThi: BoThucThiTruyVan = this.coSoDuLieu
+  ) {
+    const ketQua = await boThucThi.truyVan(
+      `
+        UPDATE phien_dang_nhap
+        SET thoi_gian_thu_hoi = COALESCE(thoi_gian_thu_hoi, NOW())
+        WHERE ma_phien = $1
+          AND ma_nguoi_dung = $2
+          AND thoi_gian_thu_hoi IS NULL
+      `,
+      [sessionId, userId]
+    );
+
+    return (ketQua.rowCount ?? 0) > 0;
   }
 }
 

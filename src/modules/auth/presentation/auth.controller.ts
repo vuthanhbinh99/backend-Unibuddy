@@ -1,6 +1,7 @@
 import type { Request, Response } from "express";
 import { z } from "zod";
 import type { BoPhuThuocUngDung } from "../../../container.js";
+import { LoiUngDung } from "../../../shared/errors/app-error.js";
 import { xuLyBatDongBo } from "../../../shared/http/async-handler.js";
 import { daTao, thanhCong } from "../../../shared/http/api-response.js";
 
@@ -51,6 +52,20 @@ export const luocDoDangXuat = z.object({
   })
 });
 
+export const luocDoLietKePhienDangNhap = z.object({
+  body: z.object({
+    refreshToken: z.string().min(1)
+  })
+});
+
+export const luocDoThuHoiPhienDangNhap = z.object({
+  params: z.object({
+    sessionId: z.string().uuid()
+  }),
+  body: z.object({}),
+  query: z.object({})
+});
+
 export const luocDoYeuCauQuenMatKhau = z.object({
   body: z.object({
     email: z.string().email()
@@ -76,6 +91,8 @@ type DuLieuDangKySinhVien = z.infer<typeof luocDoDangKySinhVien>["body"];
 type DuLieuDangNhapGoogle = z.infer<typeof luocDoDangNhapGoogle>["body"];
 type DuLieuLamMoiToken = z.infer<typeof luocDoLamMoiToken>["body"];
 type DuLieuDangXuat = z.infer<typeof luocDoDangXuat>["body"];
+type DuLieuLietKePhienDangNhap = z.infer<typeof luocDoLietKePhienDangNhap>["body"];
+type DuLieuThuHoiPhienDangNhap = z.infer<typeof luocDoThuHoiPhienDangNhap>["params"];
 type DuLieuYeuCauQuenMatKhau = z.infer<typeof luocDoYeuCauQuenMatKhau>["body"];
 type DuLieuXacThucMaQuenMatKhau = z.infer<typeof luocDoXacThucMaQuenMatKhau>["body"];
 type DuLieuDatLaiMatKhau = z.infer<typeof luocDoDatLaiMatKhau>["body"];
@@ -161,6 +178,35 @@ export class BoDieuKhienXacThuc {
     });
 
     res.status(200).json(thanhCong({ loggedOut: true }));
+  });
+
+  lietKePhienDangNhap = xuLyBatDongBo(async (req: Request, res: Response) => {
+    if (!req.user) {
+      throw LoiUngDung.khongDuocXacThuc();
+    }
+
+    const body = (req.duLieuDaXacThuc as { body: DuLieuLietKePhienDangNhap }).body;
+    const ketQua = await this.boPhuThuoc.xuLyLietKePhienDangNhapCuaToi.thucThi({
+      userId: req.user.id,
+      refreshToken: body.refreshToken
+    });
+
+    res.status(200).json(thanhCong(ketQua));
+  });
+
+  thuHoiPhienDangNhap = xuLyBatDongBo(async (req: Request, res: Response) => {
+    if (!req.user) {
+      throw LoiUngDung.khongDuocXacThuc();
+    }
+
+    const params = req.params as DuLieuThuHoiPhienDangNhap;
+
+    await this.boPhuThuoc.xuLyThuHoiPhienDangNhapCuaToi.thucThi({
+      actorId: req.user.id,
+      sessionId: params.sessionId
+    });
+
+    res.status(200).json(thanhCong({ revoked: true }));
   });
 
   yeuCauQuenMatKhau = xuLyBatDongBo(async (req: Request, res: Response) => {
