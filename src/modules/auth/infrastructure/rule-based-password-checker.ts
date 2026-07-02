@@ -3,10 +3,7 @@ import type {
   KetQuaKiemTraMatKhau,
   TieuChiMatKhau
 } from "../application/ports/password-strength-checker.js";
-
-const DANH_SACH_MAT_KHAU_PHO_BIEN = new Set([
-  "12345678", "password", "123456789", "11111111", "qwertyui"
-]);
+import { DANH_SACH_MAT_KHAU_PHO_BIEN } from "./common-passwords.js";
 
 export class BoKiemTraDoMatKhauTheoQuyTac implements BoKiemTraDoMatKhau {
   async kiemTra(matKhau: string, thongTinLienQuan: string[] = []): Promise<KetQuaKiemTraMatKhau> {
