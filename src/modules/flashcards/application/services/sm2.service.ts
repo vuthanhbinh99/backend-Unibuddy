@@ -1,6 +1,9 @@
-import type { MucDoGhiNhoFlashcard, TheFlashcard } from "../../domain/flashcard.js";
+import type { KetQuaOnTapFlashcard, MucDoGhiNhoFlashcard, TheFlashcard } from "../../domain/flashcard.js";
 
 const SO_MILI_GIAY_MOT_NGAY = 24 * 60 * 60 * 1000;
+const SO_MILI_GIAY_MOT_PHUT = 60 * 1000;
+const NGUONG_PHAN_HOI_NHANH_MS = 5000;
+const KHOANG_CACH_ON_LAI_PHUT = 3;
 const DIEM_GHI_NHO_MAC_DINH = 2.5;
 const DIEM_GHI_NHO_TOI_THIEU = 1.3;
 
@@ -64,4 +67,46 @@ export const tinhTienDoSm2 = (the: TheFlashcard, mucDo: MucDoGhiNhoFlashcard, th
     thoiGianLanOnCuoi: thoiDiemOn,
     thoiGianLanOnTiepTheo: congNgay(thoiDiemOn, khoangCachNgay)
   };
+};
+
+/**
+ * Quy đổi kết quả bấm nút (Đúng/Sai) + thời gian phản hồi thành mức độ ghi nhớ SM-2.
+ * - SAI → KHO_QUEN (đặt lại chuỗi ôn, hiện lại sau vài phút).
+ * - ĐÚNG nhanh (< 5s) → DE (giãn cách mạnh).
+ * - ĐÚNG chậm → TRUNG_BINH (giãn cách vừa).
+ */
+export const quyDoiKetQuaClickThanhMucDo = (
+  ketQua: KetQuaOnTapFlashcard,
+  thoiGianPhanHoiMs: number
+): MucDoGhiNhoFlashcard => {
+  if (ketQua === "SAI") {
+    return "KHO_QUEN";
+  }
+
+  return thoiGianPhanHoiMs >= 0 && thoiGianPhanHoiMs < NGUONG_PHAN_HOI_NHANH_MS ? "DE" : "TRUNG_BINH";
+};
+
+/**
+ * Tính lịch ôn tập tiếp theo dựa trên thao tác bấm nút của sinh viên.
+ * Khi trả lời Sai, thẻ được đưa lại trong vài phút thay vì 1 ngày để nhắc lại ngay trong phiên.
+ */
+export const tinhTienDoTheoClick = (
+  the: TheFlashcard,
+  ketQua: KetQuaOnTapFlashcard,
+  thoiGianPhanHoiMs: number,
+  thoiDiemOn = new Date()
+) => {
+  const mucDo = quyDoiKetQuaClickThanhMucDo(ketQua, thoiGianPhanHoiMs);
+  const tienDo = tinhTienDoSm2(the, mucDo, thoiDiemOn);
+
+  if (ketQua === "SAI") {
+    return {
+      ...tienDo,
+      mucDo,
+      khoangCachNgay: 0,
+      thoiGianLanOnTiepTheo: new Date(thoiDiemOn.getTime() + KHOANG_CACH_ON_LAI_PHUT * SO_MILI_GIAY_MOT_PHUT)
+    };
+  }
+
+  return { ...tienDo, mucDo };
 };
