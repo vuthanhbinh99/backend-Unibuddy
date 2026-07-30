@@ -1,5 +1,6 @@
 import type { KhoNhatKyHeThong } from "../../../audit-logs/application/ports/audit-log.repository.js";
 import type { BoQuanLyGiaoDich } from "../../../../shared/database/transaction.js";
+import type { XuLyGuiThongBaoHeThong } from "../../../notifications/application/use-cases/send-system-notification.use-case.js";
 import { LoiUngDung } from "../../../../shared/errors/app-error.js";
 import { CacLoi } from "../../../../shared/errors/error-codes.js";
 import { nhatKy } from "../../../../shared/logger/logger.js";
@@ -21,9 +22,19 @@ type PhuThuoc = {
   khoNhatKyHeThong: KhoNhatKyHeThong;
   giaoDich: BoQuanLyGiaoDich;
   dichVuLuuTruTep: DichVuLuuTruTep;
+  xuLyGuiThongBaoHeThong: XuLyGuiThongBaoHeThong;
 };
 
 const CAC_LOAI_ANH_HOP_LE = new Set(["image/png", "image/jpeg", "image/webp"]);
+
+const NHAN_LOAI_PHAN_HOI: Record<LenhGuiPhanHoiNguoiDungHienTai["category"], string> = {
+  bug: "Lỗi",
+  feature: "Tính năng",
+  ui: "Giao diện",
+  other: "Khác"
+};
+
+const CAT_NOI_DUNG = (message: string) => (message.length > 160 ? `${message.slice(0, 157)}...` : message);
 
 const layTenLoi = (error: unknown) => (error instanceof Error ? error.name : typeof error);
 
@@ -71,6 +82,8 @@ export class XuLyGuiPhanHoiNguoiDungHienTai {
         );
       });
 
+      await this.guiThongBaoQuanTri(command);
+
       return { message: "Gửi phản hồi thành công" };
     } catch (error) {
       if (tepDaLuu) {
@@ -93,8 +106,28 @@ export class XuLyGuiPhanHoiNguoiDungHienTai {
     }
   }
 
-  private async ghiNhatKyLoi(command: LenhGuiPhanHoiNguoiDungHienTai, error: unknown) {
+  private async guiThongBaoQuanTri(command: LenhGuiPhanHoiNguoiDungHienTai) {
     try {
+      await this.deps.xuLyGuiThongBaoHeThong.thucThi({
+        actorId: command.actorId,
+        title: "Phản hồi người dùng mới",
+        content: `[${NHAN_LOAI_PHAN_HOI[command.category]}] ${CAT_NOI_DUNG(command.message.trim())}`,
+        target: { roleCodes: ["ADMIN", "QUAN_TRI_VIEN"] },
+        data: {
+          type: "PHAN_HOI_NGUOI_DUNG",
+          category: command.category
+        }
+      });
+    } catch (error) {
+      nhatKy.error("Không thể gửi thông báo phản hồi người dùng cho quản trị viên", {
+        actorId: command.actorId,
+        category: command.category,
+        error
+      });
+    }
+  }
+
+  private async ghiNhatKyLoi(command: LenhGuiPhanHoiNguoiDungHienTai, error: unknown) {    try {
       await this.deps.khoNhatKyHeThong.tao({
         actorId: command.actorId,
         level: "ERROR",

@@ -20,7 +20,18 @@ export type NguoiDung = {
   updatedAt: Date;
 };
 
-export type NguoiDungCongKhai = Omit<NguoiDung, "passwordHash" | "temporaryPasswordCreatedAt">;
+export type HoSoSinhVienCongKhai = {
+  maNguoiDung: string;
+  maSinhVien: string;
+  maTruong: number | null;
+  maTruongCode: string | null;
+  nganhHoc: string | null;
+  khoaHoc: string | null;
+};
+
+export type NguoiDungCongKhai = Omit<NguoiDung, "passwordHash" | "temporaryPasswordCreatedAt"> & {
+  studentProfile?: HoSoSinhVienCongKhai | null;
+};
 
 export type NguoiDungQuanTri = Omit<NguoiDung, "passwordHash">;
 

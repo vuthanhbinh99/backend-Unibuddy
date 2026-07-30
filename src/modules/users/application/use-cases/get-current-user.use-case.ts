@@ -1,11 +1,20 @@
 import { LoiUngDung } from "../../../../shared/errors/app-error.js";
+import type {
+  HoSoSinhVienDangKy,
+  KhoDangKySinhVien
+} from "../../../auth/application/ports/student-registration.repository.js";
 import type { NguoiDungCongKhai } from "../../domain/user.js";
 import { anhXaNguoiDungCongKhai } from "../../domain/user.js";
 import type { KhoNguoiDung } from "../ports/user.repository.js";
 
 type PhuThuoc = {
   khoNguoiDung: KhoNguoiDung;
+  khoDangKySinhVien: KhoDangKySinhVien;
+  maCodeVaiTroSinhVienMacDinh: string;
 };
+
+const anhXaHoSoSinhVienCongKhai = (hoSo: HoSoSinhVienDangKy | null) =>
+  hoSo ? { ...hoSo, maTruongCode: hoSo.maTruongCode ?? null } : null;
 
 export class XuLyLayNguoiDungHienTai {
   constructor(private readonly deps: PhuThuoc) {}
@@ -21,7 +30,17 @@ export class XuLyLayNguoiDungHienTai {
       throw LoiUngDung.biKhoa("Tài khoản đã bị khóa");
     }
 
-    return anhXaNguoiDungCongKhai(user);
+    const publicUser = anhXaNguoiDungCongKhai(user);
+    if (user.role.code !== this.deps.maCodeVaiTroSinhVienMacDinh) {
+      return publicUser;
+    }
+
+    return {
+      ...publicUser,
+      studentProfile: anhXaHoSoSinhVienCongKhai(
+        await this.deps.khoDangKySinhVien.timHoSoSinhVienTheoNguoiDung(user.id)
+      )
+    };
   }
 }
 

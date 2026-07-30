@@ -10,10 +10,14 @@ export const luocDoCapNhatThongTinNguoiDungHienTai = z.object({
   body: z
     .object({
       fullName: z.string().trim().min(1).optional(),
-      phoneNumber: z.string().trim().min(1).nullable().optional()
+      phoneNumber: z.string().trim().min(1).nullable().optional(),
+      maSinhVien: z.string().trim().min(1).optional()
     })
     .refine(
-      (value) => value.fullName !== undefined || value.phoneNumber !== undefined,
+      (value) =>
+        value.fullName !== undefined ||
+        value.phoneNumber !== undefined ||
+        value.maSinhVien !== undefined,
       {
         message: "Phải cung cấp ít nhất một trường để cập nhật"
       }
@@ -69,12 +73,14 @@ export class BoDieuKhienNguoiDung {
     const body = req.body as {
       fullName?: string;
       phoneNumber?: string | null;
+      maSinhVien?: string;
     };
 
     const ketQua = await this.boPhuThuoc.xuLyCapNhatThongTinNguoiDungHienTai.thucThi({
       actorId: req.user.id,
       fullName: body.fullName,
-      phoneNumber: body.phoneNumber ?? undefined
+      phoneNumber: body.phoneNumber ?? undefined,
+      maSinhVien: body.maSinhVien
     });
 
     res.status(200).json(thanhCong(ketQua));
@@ -153,6 +159,5 @@ export class BoDieuKhienNguoiDung {
     res.status(200).json(thanhCong(ketQua));
   });
 }
-
 
 
