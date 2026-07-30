@@ -51,6 +51,16 @@ export class KhoTruongHocPostgres implements KhoTruongHoc {
     return ketQua.rows[0] ? anhXaTruongHoc(ketQua.rows[0]) : null;
   }
 
+  async timTheoTen(tenTruong: string, boThucThi: BoThucThiTruyVan = this.coSoDuLieu) {
+    const ketQua = await boThucThi.truyVan<DongTruongHoc>(`
+      ${cauTruyVanCoSo}
+      WHERE th.ten_truong ILIKE $1
+      ORDER BY th.ten_truong ASC, th.ma_truong_code ASC
+    `, [`%${tenTruong}%`]);
+
+    return ketQua.rows.map(anhXaTruongHoc);
+  }
+
   async demSoHoSoSinhVienTheoMaTruongCode(
     maTruongCode: string,
     boThucThi: BoThucThiTruyVan = this.coSoDuLieu

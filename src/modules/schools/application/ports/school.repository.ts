@@ -14,6 +14,7 @@ export type DuLieuCapNhatTruongHoc = {
 export interface KhoTruongHoc {
   lietKe(boThucThi?: BoThucThiTruyVan): Promise<TruongHoc[]>;
   timTheoMa(maTruongCode: string, boThucThi?: BoThucThiTruyVan): Promise<TruongHoc | null>;
+  timTheoTen(tenTruong: string, boThucThi?: BoThucThiTruyVan): Promise<TruongHoc[]>;
   demSoHoSoSinhVienTheoMaTruongCode(
     maTruongCode: string,
     boThucThi?: BoThucThiTruyVan
