@@ -44,6 +44,20 @@ export const luocDoXoaDeadline = z.object({
   query: z.object({})
 });
 
+export const luocDoLayTuyChinhNhacNho = z.object({
+  body: z.object({}),
+  params: z.object({}),
+  query: z.object({})
+});
+
+export const luocDoCapNhatTuyChinhNhacNho = z.object({
+  body: z.object({
+    soGioTruocHan: z.number().int().nonnegative().nullable().optional()
+  }),
+  params: z.object({}),
+  query: z.object({})
+});
+
 type DuLieuDanhSachDeadline = {
   query: z.infer<typeof luocDoDanhSachDeadline>["query"];
 };
@@ -63,6 +77,10 @@ type DuLieuCoMaDeadline = {
   params: {
     maDeadline: string;
   };
+};
+
+type DuLieuCapNhatTuyChinhNhacNho = {
+  body: z.infer<typeof luocDoCapNhatTuyChinhNhacNho>["body"];
 };
 
 export class BoDieuKhienDeadline {
@@ -107,6 +125,24 @@ export class BoDieuKhienDeadline {
     const actorId = this.layActorId(req);
     const { maDeadline } = (req.duLieuDaXacThuc as DuLieuCoMaDeadline).params;
     const ketQua = await this.boPhuThuoc.xuLyXoaDeadline.thucThi({ actorId, maDeadline });
+
+    res.status(200).json(thanhCong(ketQua));
+  });
+
+  layTuyChinhNhacNho = xuLyBatDongBo(async (req: Request, res: Response) => {
+    const actorId = this.layActorId(req);
+    const ketQua = await this.boPhuThuoc.xuLyLayTuyChinhNhacNho.thucThi({ actorId });
+
+    res.status(200).json(thanhCong(ketQua));
+  });
+
+  capNhatTuyChinhNhacNho = xuLyBatDongBo(async (req: Request, res: Response) => {
+    const actorId = this.layActorId(req);
+    const { body } = req.duLieuDaXacThuc as DuLieuCapNhatTuyChinhNhacNho;
+    const ketQua = await this.boPhuThuoc.xuLyCapNhatTuyChinhNhacNho.thucThi({
+      actorId,
+      soGioTruocHan: body.soGioTruocHan ?? null
+    });
 
     res.status(200).json(thanhCong(ketQua));
   });

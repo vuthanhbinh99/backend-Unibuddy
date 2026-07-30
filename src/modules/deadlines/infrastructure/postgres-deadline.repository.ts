@@ -1,5 +1,10 @@
 import type { BoThucThiTruyVan } from "../../../shared/database/database.js";
-import type { BoLocDeadline, DuLieuTaoNhacNhoDeadline, KhoDeadline } from "../application/ports/deadline.repository.js";
+import type {
+  BoLocDeadline,
+  DuLieuTaoNhacNhoDeadline,
+  KhoDeadline,
+  NhacNhoDenHan
+} from "../application/ports/deadline.repository.js";
 import type {
   Deadline,
   DuLieuTaoDeadline,
@@ -253,6 +258,77 @@ export class KhoDeadlinePostgres implements KhoDeadline {
     );
 
     return ketQua.rows.map(anhXaNhacNho);
+  }
+
+  async nhanNhacNhoDenHanVaKhoa(
+    gioiHan: number,
+    boThucThi: BoThucThiTruyVan = this.coSoDuLieu
+  ): Promise<NhacNhoDenHan[]> {
+    const ketQua = await boThucThi.truyVan<{
+      maNhacNho: string;
+      maNguoiDung: string;
+      maDeadline: string;
+      thoiGianNhac: Date;
+      tieuDe: string;
+      tenMon: string;
+      hanNop: Date;
+    }>(
+      `
+        WITH den_han AS (
+          SELECT nn.ma_nhac_nho
+          FROM nhac_nho nn
+          INNER JOIN deadline dl ON dl.ma_deadline = nn.ma_deadline
+          WHERE nn.ma_deadline IS NOT NULL
+            AND nn.thoi_gian_da_gui IS NULL
+            AND nn.thoi_gian_nhac <= NOW()
+            AND dl.trang_thai IN ('CHUA_LAM', 'DANG_LAM')
+          ORDER BY nn.thoi_gian_nhac ASC
+          LIMIT $1
+          FOR UPDATE OF nn SKIP LOCKED
+        ),
+        da_khoa AS (
+          UPDATE nhac_nho nn
+          SET thoi_gian_da_gui = NOW()
+          FROM den_han
+          WHERE nn.ma_nhac_nho = den_han.ma_nhac_nho
+          RETURNING nn.ma_nhac_nho, nn.ma_nguoi_dung, nn.ma_deadline, nn.thoi_gian_nhac
+        )
+        SELECT
+          da_khoa.ma_nhac_nho AS "maNhacNho",
+          da_khoa.ma_nguoi_dung AS "maNguoiDung",
+          da_khoa.ma_deadline AS "maDeadline",
+          da_khoa.thoi_gian_nhac AS "thoiGianNhac",
+          dl.tieu_de AS "tieuDe",
+          mh.ten_mon AS "tenMon",
+          dl.han_nop AS "hanNop"
+        FROM da_khoa
+        INNER JOIN deadline dl ON dl.ma_deadline = da_khoa.ma_deadline
+        INNER JOIN mon_hoc mh ON mh.ma_mon_hoc = dl.ma_mon_hoc
+        ORDER BY dl.han_nop ASC
+      `,
+      [gioiHan]
+    );
+
+    return ketQua.rows.map((row) => ({
+      maNhacNho: row.maNhacNho,
+      maNguoiDung: row.maNguoiDung,
+      maDeadline: row.maDeadline,
+      thoiGianNhac: row.thoiGianNhac,
+      tieuDe: row.tieuDe,
+      tenMon: row.tenMon,
+      hanNop: row.hanNop
+    }));
+  }
+
+  async danhDauNhacNhoChuaGui(maNhacNhos: string[], boThucThi: BoThucThiTruyVan = this.coSoDuLieu) {
+    if (maNhacNhos.length === 0) {
+      return;
+    }
+
+    await boThucThi.truyVan(
+      "UPDATE nhac_nho SET thoi_gian_da_gui = NULL WHERE ma_nhac_nho = ANY($1::uuid[])",
+      [maNhacNhos]
+    );
   }
 
   async capNhatTrangThai(

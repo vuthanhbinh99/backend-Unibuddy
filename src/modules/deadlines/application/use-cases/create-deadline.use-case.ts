@@ -3,8 +3,12 @@ import type { BoQuanLyGiaoDich } from "../../../../shared/database/transaction.j
 import { LoiUngDung } from "../../../../shared/errors/app-error.js";
 import { CacLoi } from "../../../../shared/errors/error-codes.js";
 import type { KhoDeadline } from "../ports/deadline.repository.js";
+import type { KhoTuyChinhNhacNho } from "../ports/reminder-preference.repository.js";
 import type { DichVuGhiLogLoiDeadline } from "../services/deadline-error-logger.service.js";
-import { tinhCacMocNhacDeadlineMacDinh } from "../services/deadline-reminder.service.js";
+import {
+  layCacSoGioNhacTheoTuyChinh,
+  tinhCacMocNhacDeadline
+} from "../services/deadline-reminder.service.js";
 
 export type LenhTaoDeadline = {
   actorId: string;
@@ -16,6 +20,7 @@ export type LenhTaoDeadline = {
 
 type PhuThuoc = {
   khoDeadline: KhoDeadline;
+  khoTuyChinhNhacNho: KhoTuyChinhNhacNho;
   khoNhatKyHeThong: KhoNhatKyHeThong;
   giaoDich: BoQuanLyGiaoDich;
   dichVuGhiLogLoiDeadline: DichVuGhiLogLoiDeadline;
@@ -28,6 +33,7 @@ export class XuLyTaoDeadline {
 
   async thucThi(command: LenhTaoDeadline) {
     const duLieuHopLe = await this.chuanHoaVaKiemTra(command);
+    const soGioNhacTuyChinh = await this.deps.khoTuyChinhNhacNho.layTheoNguoiDung(command.actorId);
     const monHoc = await this.deps.khoDeadline.timMonHocCuaSinhVien(duLieuHopLe.maMonHoc, command.actorId);
 
     if (!monHoc) {
@@ -52,7 +58,8 @@ export class XuLyTaoDeadline {
           },
           tx
         );
-        const cacMocNhac = tinhCacMocNhacDeadlineMacDinh(deadline.hanNop);
+        const cacSoGioNhac = layCacSoGioNhacTheoTuyChinh(soGioNhacTuyChinh);
+        const cacMocNhac = tinhCacMocNhacDeadline(deadline.hanNop, cacSoGioNhac);
         const nhacNho = await this.deps.khoDeadline.taoNhacNhoNhieu(
           {
             maNguoiDung: command.actorId,
@@ -89,7 +96,10 @@ export class XuLyTaoDeadline {
       });
 
       return {
-        message: "Thêm mới deadline thành công! Hệ thống đã tự động hẹn lịch nhắc nhở.",
+        message:
+          ketQua.nhacNho.length > 0
+            ? "Thêm mới deadline thành công! Hệ thống đã tự động hẹn lịch nhắc nhở."
+            : "Thêm mới deadline thành công!",
         deadline: ketQua.deadline,
         nhacNho: ketQua.nhacNho
       };

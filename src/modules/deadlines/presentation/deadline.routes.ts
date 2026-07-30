@@ -5,7 +5,9 @@ import { BoTrungGianXacThuc } from "../../auth/presentation/auth.middleware.js";
 import {
   BoDieuKhienDeadline,
   luocDoCapNhatTrangThaiDeadline,
+  luocDoCapNhatTuyChinhNhacNho,
   luocDoDanhSachDeadline,
+  luocDoLayTuyChinhNhacNho,
   luocDoTaoDeadline,
   luocDoXoaDeadline
 } from "./deadline.controller.js";
@@ -19,6 +21,12 @@ export const xayDungTuyenDuongDeadline = (boPhuThuoc: BoPhuThuocUngDung) => {
 
   router.use(auth.yeuCauVaiTro(SINH_VIEN));
 
+  router.get("/reminder-preference", xacThucYeuCau(luocDoLayTuyChinhNhacNho), controller.layTuyChinhNhacNho);
+  router.patch(
+    "/reminder-preference",
+    xacThucYeuCau(luocDoCapNhatTuyChinhNhacNho),
+    controller.capNhatTuyChinhNhacNho
+  );
   router.get("/", xacThucYeuCau(luocDoDanhSachDeadline), controller.lietKe);
   router.post("/", xacThucYeuCau(luocDoTaoDeadline), controller.tao);
   router.patch("/:maDeadline/status", xacThucYeuCau(luocDoCapNhatTrangThaiDeadline), controller.capNhatTrangThai);
