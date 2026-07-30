@@ -14,5 +14,10 @@ export interface KhoThongBaoNguoiDung {
     maThongBao: string,
     boThucThi?: BoThucThiTruyVan
   ): Promise<boolean>;
+  anThongBao(
+    userId: string,
+    maThongBao: string,
+    boThucThi?: BoThucThiTruyVan
+  ): Promise<boolean>;
   danhDauTatCaDaDoc(userId: string, boThucThi?: BoThucThiTruyVan): Promise<number>;
 }
