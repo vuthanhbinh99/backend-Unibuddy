@@ -14,6 +14,7 @@ export type LenhTaoCongViecKanban = {
   moTa?: string | null;
   hanHoanThanh?: string | Date | null;
   nguoiDuocGiao?: string | null;
+  giaoChoTatCa?: boolean;
 };
 
 type DuLieuHopLe = {
@@ -22,6 +23,12 @@ type DuLieuHopLe = {
   moTa: string | null;
   hanHoanThanh: Date | null;
   nguoiDuocGiao: string | null;
+  giaoChoTatCa: boolean;
+};
+
+type NguCanhTaoKanban = {
+  nhomTen: string;
+  thanhVien: NguoiThamGiaKanban;
 };
 
 type PhuThuoc = {
@@ -36,10 +43,13 @@ export class XuLyTaoCongViecKanban {
 
   async thucThi(command: LenhTaoCongViecKanban) {
     const duLieu = await this.chuanHoaVaKiemTra(command);
-    const thanhVien = await this.layVaKiemTraQuyenTao(command.actorId, duLieu.maNhom);
+    const nguCanh = await this.layVaKiemTraQuyenTao(command.actorId, duLieu.maNhom);
     const nguoiDuocGiao = duLieu.nguoiDuocGiao
       ? await this.layNguoiDuocGiaoHopLe(command.actorId, duLieu.maNhom, duLieu.nguoiDuocGiao)
       : null;
+    const dsThanhVienNhanThongBao = duLieu.giaoChoTatCa
+      ? await this.deps.khoKanban.lietKeThanhVien(duLieu.maNhom)
+      : [];
 
     try {
       const congViec = await this.deps.giaoDich.thucThiTrongGiaoDich(async (tx) => {
@@ -49,19 +59,30 @@ export class XuLyTaoCongViecKanban {
             tieuDe: duLieu.tieuDe,
             moTa: duLieu.moTa,
             hanHoanThanh: duLieu.hanHoanThanh,
-            nguoiDuocGiao: duLieu.nguoiDuocGiao,
+            nguoiDuocGiao: duLieu.giaoChoTatCa ? null : duLieu.nguoiDuocGiao,
             trangThai: "CHUA_BAT_DAU"
           },
           tx
         );
 
-        if (nguoiDuocGiao) {
+        if (duLieu.giaoChoTatCa) {
+          await this.deps.khoKanban.taoThongBaoNhieu(
+            {
+              actorId: command.actorId,
+              nguoiNhanIds: dsThanhVienNhanThongBao.map((item) => item.maNguoiDung),
+              tieuDe: "Bạn vừa được giao công việc mới",
+              noiDung: `Bạn vừa được giao công việc: ${congViecMoi.tieuDe} trong nhóm ${nguCanh.nhomTen}`,
+              maCongViec: congViecMoi.maCongViec
+            },
+            tx
+          );
+        } else if (nguoiDuocGiao) {
           await this.deps.khoKanban.taoThongBaoNhieu(
             {
               actorId: command.actorId,
               nguoiNhanIds: [nguoiDuocGiao.maNguoiDung],
-              tieuDe: "Bạn được phân công công việc mới",
-              noiDung: `Bạn được phân công công việc "${congViecMoi.tieuDe}" trong nhóm học tập.`,
+              tieuDe: "Bạn vừa được giao công việc mới",
+              noiDung: `Bạn vừa được giao công việc: ${congViecMoi.tieuDe} trong nhóm ${nguCanh.nhomTen}`,
               maCongViec: congViecMoi.maCongViec
             },
             tx
@@ -81,7 +102,8 @@ export class XuLyTaoCongViecKanban {
               maCongViec: congViecMoi.maCongViec,
               tieuDe: duLieu.tieuDe,
               nguoiDuocGiao: duLieu.nguoiDuocGiao,
-              vaiTroNguoiTao: thanhVien.vaiTroTrongNhom
+              giaoChoTatCa: duLieu.giaoChoTatCa,
+              vaiTroNguoiTao: nguCanh.thanhVien.vaiTroTrongNhom
             }
           },
           tx
@@ -120,7 +142,12 @@ export class XuLyTaoCongViecKanban {
     const tieuDe = chuanHoaChuoi(command.tieuDe);
     const moTa = chuanHoaMoTa(command.moTa);
     const hanHoanThanh = docNgayTuyChon(command.hanHoanThanh);
-    const nguoiDuocGiao = command.nguoiDuocGiao?.trim() ? assertUuid(command.nguoiDuocGiao, "Mã người phụ trách không hợp lệ") : null;
+    const giaoChoTatCa = command.giaoChoTatCa === true;
+    const nguoiDuocGiao = giaoChoTatCa
+      ? null
+      : command.nguoiDuocGiao?.trim()
+      ? assertUuid(command.nguoiDuocGiao, "Mã người phụ trách không hợp lệ")
+      : null;
     const loi: string[] = [];
 
     if (!tieuDe) {
@@ -161,11 +188,12 @@ export class XuLyTaoCongViecKanban {
       tieuDe,
       moTa,
       hanHoanThanh,
-      nguoiDuocGiao
+      nguoiDuocGiao,
+      giaoChoTatCa
     };
   }
 
-  private async layVaKiemTraQuyenTao(actorId: string, maNhom: string) {
+  private async layVaKiemTraQuyenTao(actorId: string, maNhom: string): Promise<NguCanhTaoKanban> {
     const [nhom, thanhVien] = await Promise.all([
       this.deps.khoKanban.timNhom(maNhom),
       this.deps.khoKanban.timThanhVien(maNhom, actorId)
@@ -188,7 +216,10 @@ export class XuLyTaoCongViecKanban {
       throw LoiUngDung.khongCoQuyen("Tài khoản bị khóa hoặc bạn không có quyền thao tác trong nhóm này!");
     }
 
-    return thanhVien;
+    return {
+      nhomTen: nhom.tenNhom,
+      thanhVien
+    };
   }
 
   private async layNguoiDuocGiaoHopLe(actorId: string, maNhom: string, maNguoiDuocGiao: string): Promise<NguoiThamGiaKanban> {

@@ -21,7 +21,8 @@ export const luocDoTaoCongViecKanban = z.object({
     tieuDe: z.string().trim().optional().nullable(),
     moTa: z.string().trim().optional().nullable(),
     hanHoanThanh: z.union([z.string().trim(), z.date()]).optional().nullable(),
-    nguoiDuocGiao: z.string().trim().optional().nullable()
+    nguoiDuocGiao: z.string().trim().optional().nullable(),
+    giaoChoTatCa: z.boolean().optional().nullable()
   }),
   params: z.object({}),
   query: z.object({})
@@ -143,7 +144,8 @@ export class BoDieuKhienKanban {
       tieuDe: body.tieuDe,
       moTa: body.moTa,
       hanHoanThanh: body.hanHoanThanh,
-      nguoiDuocGiao: body.nguoiDuocGiao
+      nguoiDuocGiao: body.nguoiDuocGiao,
+      giaoChoTatCa: body.giaoChoTatCa ?? false
     });
 
     res.status(201).json(daTao(ketQua));

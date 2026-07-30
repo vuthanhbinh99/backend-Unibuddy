@@ -52,22 +52,21 @@ export class XuLyBinhLuanCongViecKanban {
           },
           tx
         );
-        const truongNhom = await this.deps.khoKanban.lietKeTruongNhom(congViec.maNhom, tx);
-        const nguoiNhanThongBao = [
-          ...truongNhom.map((item) => item.maNguoiDung),
-          ...(congViec.nguoiDuocGiao ? [congViec.nguoiDuocGiao] : [])
-        ];
 
-        await this.deps.khoKanban.taoThongBaoNhieu(
-          {
-            actorId: command.actorId,
-            nguoiNhanIds: nguoiNhanThongBao,
-            tieuDe: "Có bình luận mới trong công việc nhóm",
-            noiDung: `Công việc "${congViec.tieuDe}" có bình luận mới.`,
-            maCongViec
-          },
-          tx
-        );
+        if (congViec.nguoiDuocGiao) {
+          const nhom = await this.deps.khoKanban.timNhom(congViec.maNhom, tx);
+          const tenNhom = nhom?.tenNhom ?? "nhóm học tập";
+          await this.deps.khoKanban.taoThongBaoNhieu(
+            {
+              actorId: command.actorId,
+              nguoiNhanIds: [congViec.nguoiDuocGiao],
+              tieuDe: "Có bình luận mới ở công việc bạn phụ trách",
+              noiDung: `Có người vừa bình luận vào công việc ${congViec.tieuDe} trong nhóm ${tenNhom}`,
+              maCongViec
+            },
+            tx
+          );
+        }
 
         await this.deps.khoNhatKyHeThong.tao(
           {
