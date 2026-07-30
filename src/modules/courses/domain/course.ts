@@ -16,6 +16,8 @@ export type HocPhan = {
   tenMon: string;
   soTinChi: number;
   tenHocKy: string;
+  tuDongTaoTuThoiKhoaBieu: boolean;
+  canhBaoCauHinhDiem: boolean;
   createdAt: Date;
   updatedAt: Date;
 };
@@ -46,6 +48,24 @@ export type DuLieuTaoHocKy = {
   tenHocKy: string;
   ngayBatDau: string | null;
   ngayKetThuc: string | null;
+};
+
+export type DuLieuCapNhatHocKy = {
+  tenHocKy: string;
+  ngayBatDau: string | null;
+  ngayKetThuc: string | null;
+};
+
+export type ThongKeLienKetHocKy = {
+  monHoc: number;
+  lichHoc: number;
+  lichThi: number;
+  deadline: number;
+  thanhPhanDiem: number;
+  ghiChu: number;
+  taiLieu: number;
+  boFlashcard: number;
+  tongLienKet: number;
 };
 
 export type KetQuaTimHoacTaoHocPhanImport = {

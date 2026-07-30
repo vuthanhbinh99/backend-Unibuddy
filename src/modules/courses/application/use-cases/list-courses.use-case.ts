@@ -4,6 +4,7 @@ import type { KhoHocPhan } from "../ports/course.repository.js";
 export type LenhDanhSachHocPhan = {
   actorId: string;
   maHocKy?: string | null;
+  tatCa?: boolean;
 };
 
 type PhuThuoc = {
@@ -22,6 +23,20 @@ export class XuLyDanhSachHocPhan {
         hocKy,
         selectedMaHocKy: null,
         items: []
+      };
+    }
+
+    if (command.tatCa) {
+      const items = await this.deps.khoHocPhan.lietKeTatCa(command.actorId);
+
+      return {
+        message:
+          items.length === 0
+            ? "Chưa có môn học nào, bấm vào dấu (+) để thêm môn"
+            : "Lấy danh sách môn học thành công",
+        hocKy,
+        selectedMaHocKy: null,
+        items
       };
     }
 

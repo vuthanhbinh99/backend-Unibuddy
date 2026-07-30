@@ -1,11 +1,13 @@
 import type { BoThucThiTruyVan } from "../../../../shared/database/database.js";
 import type {
+  DuLieuCapNhatHocKy,
   DuLieuCapNhatHocPhan,
   DuLieuTaoHocKy,
   DuLieuTaoHocPhan,
   HocKySinhVien,
   HocPhan,
   KetQuaTimHoacTaoHocPhanImport,
+  ThongKeLienKetHocKy,
   ThongKeLienKetHocPhan
 } from "../../domain/course.js";
 
@@ -42,11 +44,19 @@ export interface KhoHocPhan {
     boThucThi?: BoThucThiTruyVan
   ): Promise<HocKySinhVien | null>;
   taoHocKy(data: DuLieuTaoHocKy, boThucThi?: BoThucThiTruyVan): Promise<HocKySinhVien>;
+  capNhatHocKy(
+    maHocKy: string,
+    data: DuLieuCapNhatHocKy,
+    boThucThi?: BoThucThiTruyVan
+  ): Promise<HocKySinhVien | null>;
+  demLienKetHocKy(maHocKy: string, boThucThi?: BoThucThiTruyVan): Promise<ThongKeLienKetHocKy>;
+  xoaHocKy(maHocKy: string, boThucThi?: BoThucThiTruyVan): Promise<boolean>;
   lietKeTheoHocKy(
     maNguoiDung: string,
     boLoc: BoLocDanhSachHocPhan,
     boThucThi?: BoThucThiTruyVan
   ): Promise<HocPhan[]>;
+  lietKeTatCa(maNguoiDung: string, boThucThi?: BoThucThiTruyVan): Promise<HocPhan[]>;
   timTheoMaCuaSinhVien(
     maMonHoc: string,
     maNguoiDung: string,

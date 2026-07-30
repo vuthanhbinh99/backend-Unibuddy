@@ -87,7 +87,7 @@ export class XuLyTaoHocKy {
         actorId: command.actorId,
         action: "SEMESTER_CREATE_FAILED",
         tableName: "hoc_ky",
-        message: "Lỗi lưu thông tin học kỳ vào Cơ so dữ liệu",
+        message: "Lỗi lưu thông tin học kỳ vào Cơ sở dữ liệu",
         error,
         metadata: {
           tenHocKy,

@@ -4,12 +4,14 @@ import { xacThucYeuCau } from "../../../shared/validation/validate-request.js";
 import { BoTrungGianXacThuc } from "../../auth/presentation/auth.middleware.js";
 import {
   BoDieuKhienHocPhan,
+  luocDoCapNhatHocKy,
   luocDoCapNhatHocPhan,
   luocDoChiTietHocPhan,
   luocDoDanhSachHocPhan,
   luocDoTaoHocKy,
   luocDoTaoHocPhan,
   luocDoTaoHocPhanTrongHocKy,
+  luocDoXoaHocKy,
   luocDoXoaHocPhan
 } from "./course.controller.js";
 
@@ -24,6 +26,8 @@ export const xayDungTuyenDuongHocPhan = (boPhuThuoc: BoPhuThuocUngDung) => {
 
   router.get("/", xacThucYeuCau(luocDoDanhSachHocPhan), controller.lietKe);
   router.post("/semesters", xacThucYeuCau(luocDoTaoHocKy), controller.taoHocKy);
+  router.put("/semesters/:maHocKy", xacThucYeuCau(luocDoCapNhatHocKy), controller.capNhatHocKy);
+  router.delete("/semesters/:maHocKy", xacThucYeuCau(luocDoXoaHocKy), controller.xoaHocKy);
   router.post("/semesters/:maHocKy/courses", xacThucYeuCau(luocDoTaoHocPhanTrongHocKy), controller.taoTrongHocKy);
   router.get("/:maMonHoc", xacThucYeuCau(luocDoChiTietHocPhan), controller.chiTiet);
   router.post("/", xacThucYeuCau(luocDoTaoHocPhan), controller.tao);

@@ -71,7 +71,8 @@ export const luocDoDanhSachHocPhan = z.object({
   body: z.object({}),
   params: z.object({}),
   query: z.object({
-    maHocKy: maHocKy.optional().nullable().transform((value) => value ?? null)
+    maHocKy: maHocKy.optional().nullable().transform((value) => value ?? null),
+    tatCa: z.coerce.boolean().optional().default(false)
   })
 });
 
@@ -84,6 +85,20 @@ export const luocDoChiTietHocPhan = z.object({
 export const luocDoTaoHocKy = z.object({
   body: hocKyBody,
   params: z.object({}),
+  query: z.object({})
+});
+
+export const luocDoCapNhatHocKy = z.object({
+  body: hocKyBody,
+  params: z.object({ maHocKy }),
+  query: z.object({})
+});
+
+export const luocDoXoaHocKy = z.object({
+  body: z.object({
+    force: z.coerce.boolean().optional().default(false)
+  }),
+  params: z.object({ maHocKy }),
   query: z.object({})
 });
 
@@ -116,6 +131,7 @@ export const luocDoXoaHocPhan = z.object({
 type DuLieuDanhSachHocPhan = {
   query: {
     maHocKy: string | null;
+    tatCa: boolean;
   };
 };
 
@@ -131,6 +147,20 @@ type DuLieuTaoHocPhan = {
 
 type DuLieuTaoHocKy = {
   body: z.infer<typeof luocDoTaoHocKy>["body"];
+};
+
+type DuLieuCapNhatHocKy = {
+  body: z.infer<typeof luocDoCapNhatHocKy>["body"];
+  params: {
+    maHocKy: string;
+  };
+};
+
+type DuLieuXoaHocKy = {
+  body: z.infer<typeof luocDoXoaHocKy>["body"];
+  params: {
+    maHocKy: string;
+  };
 };
 
 type DuLieuTaoHocPhanTrongHocKy = {
@@ -159,7 +189,8 @@ export class BoDieuKhienHocPhan {
     const { query } = req.duLieuDaXacThuc as DuLieuDanhSachHocPhan;
     const ketQua = await this.boPhuThuoc.xuLyDanhSachHocPhan.thucThi({
       actorId,
-      maHocKy: query.maHocKy
+      maHocKy: query.maHocKy,
+      tatCa: query.tatCa
     });
 
     res.status(200).json(thanhCong(ketQua));
@@ -184,6 +215,32 @@ export class BoDieuKhienHocPhan {
     });
 
     res.status(201).json(daTao(ketQua));
+  });
+
+  capNhatHocKy = xuLyBatDongBo(async (req: Request, res: Response) => {
+    const actorId = this.layActorId(req);
+    const { body, params } = req.duLieuDaXacThuc as DuLieuCapNhatHocKy;
+    const ketQua = await this.boPhuThuoc.xuLyCapNhatHocKy.thucThi({
+      actorId,
+      maHocKy: params.maHocKy,
+      tenHocKy: body.tenHocKy,
+      ngayBatDau: body.ngayBatDau,
+      ngayKetThuc: body.ngayKetThuc
+    });
+
+    res.status(200).json(thanhCong(ketQua));
+  });
+
+  xoaHocKy = xuLyBatDongBo(async (req: Request, res: Response) => {
+    const actorId = this.layActorId(req);
+    const { body, params } = req.duLieuDaXacThuc as DuLieuXoaHocKy;
+    const ketQua = await this.boPhuThuoc.xuLyXoaHocKy.thucThi({
+      actorId,
+      maHocKy: params.maHocKy,
+      force: body.force
+    });
+
+    res.status(200).json(thanhCong(ketQua));
   });
 
   tao = xuLyBatDongBo(async (req: Request, res: Response) => {
