@@ -7,7 +7,9 @@ import { xacThucYeuCau } from "../../../shared/validation/validate-request.js";
 import { BoTrungGianXacThuc } from "../../auth/presentation/auth.middleware.js";
 import {
   BoDieuKhienTaiLieu,
+  luocDoBaoCaoTaiLieu,
   luocDoDanhSachTaiLieuSinhVien,
+  luocDoTomTatTaiLieuBangAi,
   luocDoUploadChiaSeTaiLieu,
   luocDoXoaTaiLieuSinhVien
 } from "./document.controller.js";
@@ -31,11 +33,11 @@ const taiFileTaiLieu = (req: Request, res: Response, next: NextFunction) => {
     }
 
     if (error instanceof multer.MulterError && error.code === "LIMIT_FILE_SIZE") {
-      next(LoiUngDung.yeuCauSai(`File vuot qua dung luong toi da ${dinhDangMb(cauHinh.cloudinary.maxVideoBytes)}MB`));
+      next(LoiUngDung.yeuCauSai(`File vượt quá dung lượng tối đa ${dinhDangMb(cauHinh.cloudinary.maxVideoBytes)}MB`));
       return;
     }
 
-    next(LoiUngDung.yeuCauSai("Khong the tai file len, vui long kiem tra lai dinh dang va dung luong"));
+    next(LoiUngDung.yeuCauSai("Không thể tải file lên, vui lòng kiểm tra lại định dạng và dung lượng"));
   });
 };
 
@@ -48,7 +50,9 @@ export const xayDungTuyenDuongTaiLieuSinhVien = (boPhuThuoc: BoPhuThuocUngDung) 
 
   router.get("/", xacThucYeuCau(luocDoDanhSachTaiLieuSinhVien), controller.lietKe);
   router.post("/", taiFileTaiLieu, xacThucYeuCau(luocDoUploadChiaSeTaiLieu), controller.uploadChiaSe);
+  router.post("/ai/summarize", xacThucYeuCau(luocDoTomTatTaiLieuBangAi), controller.tomTatBangAi);
   router.delete("/:maTaiLieu", xacThucYeuCau(luocDoXoaTaiLieuSinhVien), controller.xoa);
+  router.post("/:maTaiLieu/report", xacThucYeuCau(luocDoBaoCaoTaiLieu), controller.baoCao);
 
   return router;
 };

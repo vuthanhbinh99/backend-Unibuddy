@@ -34,7 +34,7 @@ const luocDoDownloadUrl = z
   .refine((value) => {
     const url = new URL(value);
     return url.protocol === "https:" || url.protocol === "http:";
-  }, "Download URL phai dung giao thuc HTTP hoac HTTPS");
+  }, "Download URL phải dùng giao thức HTTP hoặc HTTPS");
 
 export const luocDoUploadChiaSeTaiLieu = z.object({
   body: z.object({
@@ -47,7 +47,7 @@ export const luocDoUploadChiaSeTaiLieu = z.object({
       .trim()
       .min(1)
       .max(120)
-      .refine((value) => CAC_LOAI_FILE_HOP_LE.has(value.toLowerCase()), "Dinh dang file khong duoc ho tro")
+      .refine((value) => CAC_LOAI_FILE_HOP_LE.has(value.toLowerCase()), "Định dạng file không được hỗ trợ")
       .optional(),
     dungLuong: z.coerce.number().int().positive().optional()
   }),
@@ -70,6 +70,26 @@ export const luocDoXoaTaiLieuSinhVien = z.object({
   params: z.object({
     maTaiLieu: z.string().uuid()
   }),
+  query: z.object({})
+});
+
+export const luocDoBaoCaoTaiLieu = z.object({
+  body: z.object({
+    lyDo: z.string().trim().min(10).max(1000)
+  }),
+  params: z.object({
+    maTaiLieu: z.string().uuid()
+  }),
+  query: z.object({})
+});
+
+export const luocDoTomTatTaiLieuBangAi = z.object({
+  body: z.object({
+    title: z.string().trim().min(3).max(255),
+    content: z.string().trim().min(30).max(12000),
+    objective: z.string().trim().max(500).optional().nullable()
+  }),
+  params: z.object({}),
   query: z.object({})
 });
 
@@ -98,6 +118,19 @@ type DuLieuXoaTaiLieuSinhVien = {
   };
 };
 
+type DuLieuBaoCaoTaiLieu = {
+  body: {
+    lyDo: string;
+  };
+  params: {
+    maTaiLieu: string;
+  };
+};
+
+type DuLieuTomTatTaiLieuBangAi = {
+  body: z.infer<typeof luocDoTomTatTaiLieuBangAi>["body"];
+};
+
 const chonMimeType = (fileMimeType: string | undefined, bodyMimeType: string | undefined) => {
   const bodyMime = bodyMimeType?.trim().toLowerCase();
   const fileMime = fileMimeType?.trim().toLowerCase();
@@ -116,11 +149,11 @@ const xacThucTepTaiLen = (file: Express.Multer.File | undefined, body: DuLieuUpl
   const dungLuong = file?.size ?? body.dungLuong ?? 0;
 
   if (!file && !body.downloadUrl) {
-    throw LoiUngDung.yeuCauSai("Vui long chon file hoac cung cap lien ket tai lieu");
+    throw LoiUngDung.yeuCauSai("Vui lòng chọn file hoặc cung cấp liên kết tài liệu");
   }
 
   if (!mimeType || !CAC_LOAI_FILE_HOP_LE.has(mimeType)) {
-    throw LoiUngDung.yeuCauSai("Dinh dang file khong duoc ho tro");
+    throw LoiUngDung.yeuCauSai("Định dạng file không được hỗ trợ");
   }
 
   const gioiHan = mimeType.startsWith("video/")
@@ -128,7 +161,7 @@ const xacThucTepTaiLen = (file: Express.Multer.File | undefined, body: DuLieuUpl
     : cauHinh.cloudinary.maxDocumentBytes;
 
   if (dungLuong <= 0 || dungLuong > gioiHan) {
-    throw LoiUngDung.yeuCauSai(`File vuot qua dung luong toi da ${dinhDangMb(gioiHan)}MB`);
+    throw LoiUngDung.yeuCauSai(`File vượt quá dung lượng tối đa ${dinhDangMb(gioiHan)}MB`);
   }
 
   return { mimeType, dungLuong };
@@ -141,7 +174,7 @@ export class BoDieuKhienTaiLieu {
     const actorId = req.user?.id;
 
     if (!actorId) {
-      throw LoiUngDung.khongDuocXacThuc("Nguoi dung chua dang nhap");
+      throw LoiUngDung.khongDuocXacThuc("Người dùng chưa đăng nhập");
     }
 
     const { query } = req.duLieuDaXacThuc as DuLieuDanhSachTaiLieuSinhVien;
@@ -159,7 +192,7 @@ export class BoDieuKhienTaiLieu {
     const actorId = req.user?.id;
 
     if (!actorId) {
-      throw LoiUngDung.khongDuocXacThuc("Nguoi dung chua dang nhap");
+      throw LoiUngDung.khongDuocXacThuc("Người dùng chưa đăng nhập");
     }
 
     const { body } = req.duLieuDaXacThuc as DuLieuUploadChiaSeTaiLieu;
@@ -195,13 +228,53 @@ export class BoDieuKhienTaiLieu {
     const actorId = req.user?.id;
 
     if (!actorId) {
-      throw LoiUngDung.khongDuocXacThuc("Nguoi dung chua dang nhap");
+      throw LoiUngDung.khongDuocXacThuc("Người dùng chưa đăng nhập");
     }
 
     const { params } = req.duLieuDaXacThuc as DuLieuXoaTaiLieuSinhVien;
     const ketQua = await this.boPhuThuoc.xuLyXoaTaiLieuSinhVien.thucThi({
       actorId,
       maTaiLieu: params.maTaiLieu
+    });
+
+    res.json(thanhCong(ketQua));
+  });
+
+  baoCao = xuLyBatDongBo(async (req: Request, res: Response) => {
+    const actorId = req.user?.id;
+
+    if (!actorId) {
+      throw LoiUngDung.khongDuocXacThuc("Người dùng chưa đăng nhập");
+    }
+
+    const { body, params } = req.duLieuDaXacThuc as DuLieuBaoCaoTaiLieu;
+    const baoCao = await this.boPhuThuoc.xuLyTaoBaoCaoTaiLieu.thucThi({
+      maTaiLieu: params.maTaiLieu,
+      nguoiBaoCao: actorId,
+      lyDo: body.lyDo
+    });
+
+    res.status(201).json(
+      daTao({
+        message: "Đã gửi báo cáo tài liệu cho quản trị viên",
+        baoCao
+      })
+    );
+  });
+
+  tomTatBangAi = xuLyBatDongBo(async (req: Request, res: Response) => {
+    const actorId = req.user?.id;
+
+    if (!actorId) {
+      throw LoiUngDung.khongDuocXacThuc("Người dùng chưa đăng nhập");
+    }
+
+    const { body } = req.duLieuDaXacThuc as DuLieuTomTatTaiLieuBangAi;
+    const ketQua = await this.boPhuThuoc.xuLyTomTatTaiLieuBangAi.thucThi({
+      actorId,
+      title: body.title,
+      content: body.content,
+      objective: body.objective
     });
 
     res.json(thanhCong(ketQua));
