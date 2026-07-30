@@ -26,14 +26,38 @@ export const luocDoDanhDauDaDocThongBao = z.object({
   query: z.object({})
 });
 
+export const luocDoAnThongBao = z.object({
+  body: z.object({}),
+  params: z.object({
+    maThongBao: z.string().uuid()
+  }),
+  query: z.object({})
+});
+
 export const luocDoDanhDauTatCaDaDocThongBao = z.object({
   body: z.object({}),
   params: z.object({}),
   query: z.object({})
 });
 
+export const luocDoLayTuyChinhThongBao = z.object({
+  body: z.object({}),
+  params: z.object({}),
+  query: z.object({})
+});
+
+export const luocDoCapNhatTuyChinhThongBao = z.object({
+  body: z.object({
+    nhanThongBao: z.boolean()
+  }),
+  params: z.object({}),
+  query: z.object({})
+});
+
 type DuLieuDanhSachThongBao = z.infer<typeof luocDoDanhSachThongBaoNguoiDung>;
 type DuLieuDanhDauDaDoc = z.infer<typeof luocDoDanhDauDaDocThongBao>;
+type DuLieuAnThongBao = z.infer<typeof luocDoAnThongBao>;
+type DuLieuCapNhatTuyChinhThongBao = z.infer<typeof luocDoCapNhatTuyChinhThongBao>;
 
 export class BoDieuKhienThongBaoNguoiDung {
   constructor(private readonly boPhuThuoc: BoPhuThuocUngDung) {}
@@ -69,6 +93,20 @@ export class BoDieuKhienThongBaoNguoiDung {
     res.status(200).json(thanhCong(ketQua));
   });
 
+  anThongBao = xuLyBatDongBo(async (req: Request, res: Response) => {
+    if (!req.user) {
+      throw LoiUngDung.khongDuocXacThuc();
+    }
+
+    const { params } = req.duLieuDaXacThuc as DuLieuAnThongBao;
+    const ketQua = await this.boPhuThuoc.xuLyAnThongBao.thucThi({
+      userId: req.user.id,
+      maThongBao: params.maThongBao
+    });
+
+    res.status(200).json(thanhCong(ketQua));
+  });
+
   danhDauTatCaDaDoc = xuLyBatDongBo(async (req: Request, res: Response) => {
     if (!req.user) {
       throw LoiUngDung.khongDuocXacThuc();
@@ -76,6 +114,32 @@ export class BoDieuKhienThongBaoNguoiDung {
 
     const ketQua = await this.boPhuThuoc.xuLyDanhDauTatCaDaDocThongBao.thucThi({
       userId: req.user.id
+    });
+
+    res.status(200).json(thanhCong(ketQua));
+  });
+
+  layTuyChinh = xuLyBatDongBo(async (req: Request, res: Response) => {
+    if (!req.user) {
+      throw LoiUngDung.khongDuocXacThuc();
+    }
+
+    const ketQua = await this.boPhuThuoc.xuLyLayTuyChinhThongBaoDay.thucThi({
+      actorId: req.user.id
+    });
+
+    res.status(200).json(thanhCong(ketQua));
+  });
+
+  capNhatTuyChinh = xuLyBatDongBo(async (req: Request, res: Response) => {
+    if (!req.user) {
+      throw LoiUngDung.khongDuocXacThuc();
+    }
+
+    const { body } = req.duLieuDaXacThuc as DuLieuCapNhatTuyChinhThongBao;
+    const ketQua = await this.boPhuThuoc.xuLyCapNhatTuyChinhThongBaoDay.thucThi({
+      actorId: req.user.id,
+      nhanThongBao: body.nhanThongBao
     });
 
     res.status(200).json(thanhCong(ketQua));

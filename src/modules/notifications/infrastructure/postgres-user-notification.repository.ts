@@ -11,6 +11,11 @@ type KieuCotDaDoc =
   | { kind: "boolean"; name: "da_doc" }
   | null;
 
+type KieuCotAn =
+  | { kind: "timestamp"; name: "thoi_gian_an" | "thoi_gian_da_an" }
+  | { kind: "boolean"; name: "da_an" }
+  | null;
+
 type DongThongBaoNguoiDung = {
   maThongBao: string;
   maNguoiNhan: string;
@@ -45,6 +50,7 @@ const anhXaThongBao = (row: DongThongBaoNguoiDung): ThongBaoNguoiDung => ({
 
 export class KhoThongBaoNguoiDungPostgres implements KhoThongBaoNguoiDung {
   private cotDaDoc?: KieuCotDaDoc;
+  private cotAn?: KieuCotAn;
   private hoTroMaCongViec?: boolean;
 
   constructor(private readonly coSoDuLieu: BoThucThiTruyVan) {}
@@ -54,9 +60,10 @@ export class KhoThongBaoNguoiDungPostgres implements KhoThongBaoNguoiDung {
     boThucThi: BoThucThiTruyVan = this.coSoDuLieu
   ): Promise<KetQuaDanhSachThongBaoNguoiDung> {
     const cotDaDoc = await this.layCotDaDoc(boThucThi);
+    const cotAn = await this.layCotAn(boThucThi);
     const coMaCongViec = await this.coHoTroMaCongViec(boThucThi);
     const params: unknown[] = [boLoc.userId];
-    const dieuKien = this.xayDungDieuKienLoc(boLoc, params, cotDaDoc);
+    const dieuKien = this.xayDungDieuKienLoc(boLoc, params, cotDaDoc, cotAn);
     const dieuKienSql = `WHERE ${dieuKien.join(" AND ")}`;
     const offset = (boLoc.page - 1) * boLoc.limit;
 
@@ -70,12 +77,14 @@ export class KhoThongBaoNguoiDungPostgres implements KhoThongBaoNguoiDung {
     );
 
     const dieuKienChuaDoc = this.dieuKienChuaDoc(cotDaDoc);
+    const dieuKienChuaAn = this.dieuKienChuaAn(cotAn);
     const demChuaDoc = await boThucThi.truyVan<DongDem>(
       `
         SELECT COUNT(*)::text AS "total"
         FROM thong_bao tb
         WHERE tb.ma_nguoi_nhan = $1::uuid
           ${dieuKienChuaDoc ? `AND ${dieuKienChuaDoc}` : ""}
+          ${dieuKienChuaAn ? `AND ${dieuKienChuaAn}` : ""}
       `,
       [boLoc.userId]
     );
@@ -145,6 +154,28 @@ export class KhoThongBaoNguoiDungPostgres implements KhoThongBaoNguoiDung {
     return (ketQua.rowCount ?? 0) > 0;
   }
 
+  async anThongBao(
+    userId: string,
+    maThongBao: string,
+    boThucThi: BoThucThiTruyVan = this.coSoDuLieu
+  ) {
+    const cotAn = await this.layHoacTaoCotAn(boThucThi);
+    const cauLenhCapNhat = this.cauLenhCapNhatDaAn(cotAn);
+    const dieuKienChuaAn = this.dieuKienChuaAn(cotAn);
+    const ketQua = await boThucThi.truyVan(
+      `
+        UPDATE thong_bao tb
+        SET ${cauLenhCapNhat}
+        WHERE tb.ma_thong_bao = $1::uuid
+          AND tb.ma_nguoi_nhan = $2::uuid
+          ${dieuKienChuaAn ? `AND ${dieuKienChuaAn}` : ""}
+      `,
+      [maThongBao, userId]
+    );
+
+    return (ketQua.rowCount ?? 0) > 0;
+  }
+
   async danhDauTatCaDaDoc(userId: string, boThucThi: BoThucThiTruyVan = this.coSoDuLieu) {
     const cotDaDoc = await this.layCotDaDoc(boThucThi);
     const cauLenhCapNhat = this.cauLenhCapNhatDaDoc(cotDaDoc);
@@ -170,9 +201,15 @@ export class KhoThongBaoNguoiDungPostgres implements KhoThongBaoNguoiDung {
   private xayDungDieuKienLoc(
     boLoc: BoLocThongBaoNguoiDung,
     params: unknown[],
-    cotDaDoc: KieuCotDaDoc
+    cotDaDoc: KieuCotDaDoc,
+    cotAn: KieuCotAn
   ) {
     const dieuKien = ["tb.ma_nguoi_nhan = $1::uuid"];
+    const dieuKienChuaAn = this.dieuKienChuaAn(cotAn);
+
+    if (dieuKienChuaAn) {
+      dieuKien.push(dieuKienChuaAn);
+    }
 
     if (boLoc.onlyUnread) {
       const dieuKienChuaDoc = this.dieuKienChuaDoc(cotDaDoc);
@@ -225,6 +262,26 @@ export class KhoThongBaoNguoiDungPostgres implements KhoThongBaoNguoiDung {
     return `${cotDaDoc.name} = true`;
   }
 
+  private dieuKienChuaAn(cotAn: KieuCotAn) {
+    if (!cotAn) {
+      return "";
+    }
+
+    if (cotAn.kind === "timestamp") {
+      return `tb.${cotAn.name} IS NULL`;
+    }
+
+    return `COALESCE(tb.${cotAn.name}, false) = false`;
+  }
+
+  private cauLenhCapNhatDaAn(cotAn: Exclude<KieuCotAn, null>) {
+    if (cotAn.kind === "timestamp") {
+      return `${cotAn.name} = COALESCE(${cotAn.name}, NOW())`;
+    }
+
+    return `${cotAn.name} = true`;
+  }
+
   private async layCotDaDoc(boThucThi: BoThucThiTruyVan) {
     if (this.cotDaDoc !== undefined) {
       return this.cotDaDoc;
@@ -247,6 +304,43 @@ export class KhoThongBaoNguoiDungPostgres implements KhoThongBaoNguoiDung {
 
     this.cotDaDoc = null;
     return this.cotDaDoc;
+  }
+
+  private async layCotAn(boThucThi: BoThucThiTruyVan) {
+    if (this.cotAn !== undefined) {
+      return this.cotAn;
+    }
+
+    if (await this.coCotTrongBang("thong_bao", "thoi_gian_an", boThucThi)) {
+      this.cotAn = { kind: "timestamp", name: "thoi_gian_an" };
+      return this.cotAn;
+    }
+
+    if (await this.coCotTrongBang("thong_bao", "thoi_gian_da_an", boThucThi)) {
+      this.cotAn = { kind: "timestamp", name: "thoi_gian_da_an" };
+      return this.cotAn;
+    }
+
+    if (await this.coCotTrongBang("thong_bao", "da_an", boThucThi)) {
+      this.cotAn = { kind: "boolean", name: "da_an" };
+      return this.cotAn;
+    }
+
+    this.cotAn = null;
+    return this.cotAn;
+  }
+
+  private async layHoacTaoCotAn(boThucThi: BoThucThiTruyVan) {
+    const cotAn = await this.layCotAn(boThucThi);
+    if (cotAn) {
+      return cotAn;
+    }
+
+    await boThucThi.truyVan(
+      "ALTER TABLE thong_bao ADD COLUMN IF NOT EXISTS thoi_gian_an timestamptz"
+    );
+    this.cotAn = { kind: "timestamp", name: "thoi_gian_an" };
+    return this.cotAn;
   }
 
   private async coHoTroMaCongViec(boThucThi: BoThucThiTruyVan) {

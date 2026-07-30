@@ -4,9 +4,12 @@ import { xacThucYeuCau } from "../../../shared/validation/validate-request.js";
 import { BoTrungGianXacThuc } from "../../auth/presentation/auth.middleware.js";
 import {
   BoDieuKhienThongBaoNguoiDung,
+  luocDoCapNhatTuyChinhThongBao,
+  luocDoAnThongBao,
   luocDoDanhDauDaDocThongBao,
   luocDoDanhDauTatCaDaDocThongBao,
-  luocDoDanhSachThongBaoNguoiDung
+  luocDoDanhSachThongBaoNguoiDung,
+  luocDoLayTuyChinhThongBao
 } from "./user-notification.controller.js";
 
 export const xayDungTuyenDuongThongBaoNguoiDung = (boPhuThuoc: BoPhuThuocUngDung) => {
@@ -16,8 +19,11 @@ export const xayDungTuyenDuongThongBaoNguoiDung = (boPhuThuoc: BoPhuThuocUngDung
 
   router.use(auth.yeuCauXacThuc);
 
+  router.get("/preference", xacThucYeuCau(luocDoLayTuyChinhThongBao), controller.layTuyChinh);
+  router.patch("/preference", xacThucYeuCau(luocDoCapNhatTuyChinhThongBao), controller.capNhatTuyChinh);
   router.get("/", xacThucYeuCau(luocDoDanhSachThongBaoNguoiDung), controller.lietKe);
   router.patch("/read-all", xacThucYeuCau(luocDoDanhDauTatCaDaDocThongBao), controller.danhDauTatCaDaDoc);
+  router.patch("/:maThongBao/hide", xacThucYeuCau(luocDoAnThongBao), controller.anThongBao);
   router.patch("/:maThongBao/read", xacThucYeuCau(luocDoDanhDauDaDocThongBao), controller.danhDauDaDoc);
 
   return router;

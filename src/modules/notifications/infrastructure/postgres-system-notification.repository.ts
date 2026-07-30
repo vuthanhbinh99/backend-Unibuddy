@@ -31,7 +31,11 @@ const anhXaNguoiNhan = (row: DongNguoiNhanThongBao): NguoiNhanThongBao => ({
   roleCode: row.roleCode
 });
 
+const COT_NHAN_THONG_BAO = "nhan_thong_bao_day";
+
 export class KhoThongBaoHeThongPostgres implements KhoThongBaoHeThong {
+  private coCotNhanThongBao?: boolean;
+
   constructor(private readonly coSoDuLieu: BoThucThiTruyVan) {}
 
   async timNguoiNhan(boLoc: BoLocNguoiNhanThongBao, boThucThi: BoThucThiTruyVan = this.coSoDuLieu) {
@@ -122,16 +126,24 @@ export class KhoThongBaoHeThongPostgres implements KhoThongBaoHeThong {
       return [];
     }
 
+    // Bỏ qua người dùng đã tắt "Thông báo ứng dụng" (nhan_thong_bao_day = FALSE).
+    // Nếu cột chưa tồn tại (migration chưa chạy) thì coi như mọi người đều bật.
+    const locTheoTuyChon = (await this.coCotTuyChinhThongBao(boThucThi))
+      ? `AND COALESCE(nd.${COT_NHAN_THONG_BAO}, TRUE) = TRUE`
+      : "";
+
     const ketQua = await boThucThi.truyVan<DongFcmToken>(
       `
         SELECT DISTINCT ON (pdn.fcm_token)
           pdn.ma_nguoi_dung AS "userId",
           pdn.fcm_token AS "token"
         FROM phien_dang_nhap pdn
+        INNER JOIN nguoi_dung nd ON nd.ma_nguoi_dung = pdn.ma_nguoi_dung
         WHERE pdn.ma_nguoi_dung = ANY($1::uuid[])
           AND pdn.fcm_token IS NOT NULL
           AND pdn.thoi_gian_thu_hoi IS NULL
           AND pdn.thoi_gian_het_han > NOW()
+          ${locTheoTuyChon}
         ORDER BY pdn.fcm_token, pdn.lan_hoat_dong_cuoi DESC
       `,
       [userIds]
@@ -158,5 +170,27 @@ export class KhoThongBaoHeThongPostgres implements KhoThongBaoHeThong {
       `,
       [uniqueTokens]
     );
+  }
+
+  private async coCotTuyChinhThongBao(boThucThi: BoThucThiTruyVan) {
+    if (this.coCotNhanThongBao !== undefined) {
+      return this.coCotNhanThongBao;
+    }
+
+    const ketQua = await boThucThi.truyVan<{ exists: boolean }>(
+      `
+        SELECT EXISTS (
+          SELECT 1
+          FROM information_schema.columns
+          WHERE table_schema = current_schema()
+            AND table_name = 'nguoi_dung'
+            AND column_name = $1
+        ) AS "exists"
+      `,
+      [COT_NHAN_THONG_BAO]
+    );
+
+    this.coCotNhanThongBao = ketQua.rows[0]?.exists ?? false;
+    return this.coCotNhanThongBao;
   }
 }
