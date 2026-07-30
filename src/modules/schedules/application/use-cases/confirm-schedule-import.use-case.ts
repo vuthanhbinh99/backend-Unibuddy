@@ -1,5 +1,6 @@
 import type { KhoNhatKyHeThong } from "../../../audit-logs/application/ports/audit-log.repository.js";
 import type { KhoHocPhan } from "../../../courses/application/ports/course.repository.js";
+import type { KhoDiemSo } from "../../../grades/application/ports/grade.repository.js";
 import type { BoQuanLyGiaoDich } from "../../../../shared/database/transaction.js";
 import { LoiUngDung } from "../../../../shared/errors/app-error.js";
 import { CacLoi } from "../../../../shared/errors/error-codes.js";
@@ -13,17 +14,24 @@ export type LenhXacNhanImportThoiKhoaBieu = {
   actorId: string;
   maHocKy?: string | null;
   items: DuLieuImportLichHoc[];
+  replaceExistingCourseSchedules?: boolean;
 };
 
 type PhuThuoc = {
   khoLichHoc: KhoLichHoc;
   khoHocPhan: KhoHocPhan;
+  khoDiemSo: KhoDiemSo;
   khoNhatKyHeThong: KhoNhatKyHeThong;
   giaoDich: BoQuanLyGiaoDich;
   dichVuGhiLogLoiThoiKhoaBieu: DichVuGhiLogLoiThoiKhoaBieu;
 };
 
 const MA_MON_HOC_TAM_CHO_IMPORT = "00000000-0000-0000-0000-000000000000";
+const CAU_HINH_TRONG_SO_MAC_DINH_MON_TU_TKB = [
+  { tenThanhPhan: "Chuyên cần", trongSo: 10 },
+  { tenThanhPhan: "Giữa kỳ", trongSo: 20 },
+  { tenThanhPhan: "Cuối kỳ", trongSo: 70 }
+] as const;
 
 export class XuLyXacNhanImportThoiKhoaBieu {
   constructor(private readonly deps: PhuThuoc) {}
@@ -106,7 +114,12 @@ export class XuLyXacNhanImportThoiKhoaBieu {
     const xungDotDatabase = [];
 
     for (const [index, item] of dsLichHocKiemTra.entries()) {
-      const xungDot = await this.deps.khoLichHoc.timXungDot(command.actorId, item);
+      const xungDotBanDau = await this.deps.khoLichHoc.timXungDot(command.actorId, item);
+      const maMonHocImport = command.items[index].maMonHoc;
+      const xungDot =
+        command.replaceExistingCourseSchedules && maMonHocImport
+          ? xungDotBanDau.filter((lichHoc) => lichHoc.maMonHoc !== maMonHocImport)
+          : xungDotBanDau;
 
       if (xungDot.length > 0) {
         xungDotDatabase.push({
@@ -164,6 +177,29 @@ export class XuLyXacNhanImportThoiKhoaBieu {
             maMonHoc = ketQuaMonHoc.monHoc.maMonHoc;
 
             if (ketQuaMonHoc.daTao) {
+              await this.deps.khoDiemSo.thayTheCauHinhTrongSo(
+                maMonHoc,
+                [...CAU_HINH_TRONG_SO_MAC_DINH_MON_TU_TKB],
+                tx
+              );
+              await this.deps.khoNhatKyHeThong.tao(
+                {
+                  actorId: command.actorId,
+                  level: "INFO",
+                  action: "COURSE_AUTO_CREATED_FROM_SCHEDULE_IMPORT",
+                  tableName: "mon_hoc",
+                  recordId: maMonHoc,
+                  message: "Sinh viên import TKB và hệ thống tự tạo môn học cùng cấu hình điểm mặc định",
+                  metadata: {
+                    maMonHoc,
+                    maHocKy: ketQuaMonHoc.monHoc.maHocKy,
+                    maMon: ketQuaMonHoc.monHoc.maMon,
+                    tenMon: ketQuaMonHoc.monHoc.tenMon,
+                    cauHinhTrongSoMacDinh: CAU_HINH_TRONG_SO_MAC_DINH_MON_TU_TKB
+                  }
+                },
+                tx
+              );
               soMonHocTuDongTao += 1;
             }
           }
@@ -179,6 +215,10 @@ export class XuLyXacNhanImportThoiKhoaBieu {
           });
         }
 
+        const dsMaMonHocCanThayThe = command.replaceExistingCourseSchedules
+          ? Array.from(new Set(dsCanLuu.map((item) => item.maMonHoc)))
+          : [];
+        const soLichHocDaThayThe = await this.deps.khoLichHoc.xoaTheoMonHoc(dsMaMonHocCanThayThe, tx);
         const dsDaLuu = await this.deps.khoLichHoc.taoNhieu(dsCanLuu, tx);
 
         await this.deps.khoNhatKyHeThong.tao(
@@ -193,6 +233,7 @@ export class XuLyXacNhanImportThoiKhoaBieu {
               soDongImport: command.items.length,
               soDongDaLuu: dsDaLuu.length,
               soMonHocTuDongTao,
+              soLichHocDaThayThe,
               ruleCode: "BR-SCH-01"
             }
           },
@@ -201,7 +242,8 @@ export class XuLyXacNhanImportThoiKhoaBieu {
 
         return {
           lichHoc: dsDaLuu,
-          soMonHocTuDongTao
+          soMonHocTuDongTao,
+          soLichHocDaThayThe
         };
       });
 
@@ -209,6 +251,7 @@ export class XuLyXacNhanImportThoiKhoaBieu {
         message: "Đồng bộ thành công! Thời khóa biểu của bạn đã được cập nhật.",
         importedCount: ketQua.lichHoc.length,
         autoCreatedCourseCount: ketQua.soMonHocTuDongTao,
+        replacedScheduleCount: ketQua.soLichHocDaThayThe,
         items: ketQua.lichHoc
       };
     } catch (error) {

@@ -22,6 +22,7 @@ export type LenhPreviewImportThoiKhoaBieu = {
   maHocKy?: string | null;
   rows: DongImportThoiKhoaBieu[];
   mapping: MappingCotImportThoiKhoaBieu;
+  replaceExistingCourseSchedules?: boolean;
 };
 
 type PhuThuoc = {
@@ -32,6 +33,7 @@ type PhuThuoc = {
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const MA_MON_HOC_TAM_CHO_IMPORT = "00000000-0000-0000-0000-000000000000";
+const LOI_XU_LY_DONG_IMPORT = "Không thể xử lý dòng dữ liệu này, vui lòng kiểm tra lại mapping hoặc nhập thủ công";
 
 export class XuLyPreviewImportThoiKhoaBieu {
   constructor(private readonly deps: PhuThuoc) {}
@@ -45,7 +47,7 @@ export class XuLyPreviewImportThoiKhoaBieu {
           actorId: command.actorId,
           action: "SCHEDULE_IMPORT_PREVIEW_REJECTED",
           tableName: "lich_hoc",
-          message: "Sinh vien xem truoc import TKB that bai vi du lieu preview khong hop le",
+          message: "Sinh viên xem trước thời khóa biểu vì dữ liệu preview không hợp lệ, hệ thống huớng dẫn sinh viên nhập thủ công",
           metadata: {
             soDongNguon: command.rows.length,
             maHocKy: command.maHocKy ?? null,
@@ -94,63 +96,91 @@ export class XuLyPreviewImportThoiKhoaBieu {
 
     for (const [index, row] of command.rows.entries()) {
       const rowIndex = index + 2;
-      const chuanHoa = this.deps.dichVuMappingImportThoiKhoaBieu.chuanHoaDong(row, command.mapping, rowIndex);
-      const loi = [...chuanHoa.loi];
+      try {
+        const chuanHoa = this.deps.dichVuMappingImportThoiKhoaBieu.chuanHoaDong(row, command.mapping, rowIndex);
+        const loi = [...chuanHoa.loi];
 
-      if (chuanHoa.maMonHoc && !UUID_PATTERN.test(chuanHoa.maMonHoc)) {
-        loi.push("Mã môn học không đúng định dạng UUID");
-      }
+        if (chuanHoa.maMonHoc && !UUID_PATTERN.test(chuanHoa.maMonHoc)) {
+          loi.push("Mã môn học không đúng định dạng UUID");
+        }
 
-      let lichHoc: DuLieuImportLichHoc | null = null;
+        let lichHoc: DuLieuImportLichHoc | null = null;
 
-      if (loi.length === 0 && chuanHoa.thu && chuanHoa.tietBatDau && chuanHoa.soTiet) {
-        const monHocPhuHop = await this.deps.khoLichHoc.timMonHocChoImport({
-          maNguoiDung: command.actorId,
-          maHocKy: command.maHocKy ?? null,
-          maMonHoc: chuanHoa.maMonHoc ?? null,
-          maMon: chuanHoa.maMon,
-          tenMon: chuanHoa.tenMon
+        if (loi.length === 0 && chuanHoa.thu && chuanHoa.tietBatDau && chuanHoa.soTiet) {
+          const monHocPhuHop = await this.deps.khoLichHoc.timMonHocChoImport({
+            maNguoiDung: command.actorId,
+            maHocKy: command.maHocKy ?? null,
+            maMonHoc: chuanHoa.maMonHoc ?? null,
+            maMon: chuanHoa.maMon,
+            tenMon: chuanHoa.tenMon
+          });
+
+          if (monHocPhuHop.length > 1) {
+            loi.push("Môn học khớp nhiều kết quả, vui lòng chọn học kỳ hoặc map bằng mã môn học chính xác");
+          } else if (monHocPhuHop.length === 1) {
+            const monHoc = monHocPhuHop[0];
+            lichHoc = {
+              rowIndex,
+              maMonHoc: monHoc.maMonHoc,
+              maMon: monHoc.maMon,
+              tenMon: monHoc.tenMon,
+              soTinChi: monHoc.soTinChi,
+              tuDongTaoMonHoc: false,
+              thu: chuanHoa.thu,
+              tietBatDau: chuanHoa.tietBatDau,
+              soTiet: chuanHoa.soTiet,
+              phongHoc: chuanHoa.phongHoc ?? null,
+              ngayBatDau: chuanHoa.ngayBatDau ?? null,
+              ngayKetThuc: chuanHoa.ngayKetThuc ?? null
+            };
+          } else {
+            lichHoc = this.taoDongLichHocChoMonHocTuDong(command.maHocKy ?? null, rowIndex, chuanHoa, loi);
+          }
+        }
+
+        const xungDotBanDau = lichHoc
+          ? await this.deps.khoLichHoc.timXungDot(command.actorId, this.layDuLieuLichHocKiemTra(lichHoc))
+          : [];
+        const xungDot =
+          command.replaceExistingCourseSchedules && lichHoc?.maMonHoc
+            ? xungDotBanDau.filter((item) => item.maMonHoc !== lichHoc.maMonHoc)
+            : xungDotBanDau;
+
+        if (xungDot.length > 0) {
+          loi.push(`Trùng lịch học với ${xungDot.map((item) => item.tenMon).join(", ")}`);
+        }
+
+        preview.push({
+          rowIndex,
+          hopLe: loi.length === 0,
+          trungLich: xungDot.length > 0,
+          loi,
+          lichHoc,
+          xungDot
+        });
+      } catch (error) {
+        await this.deps.dichVuGhiLogLoiThoiKhoaBieu.ghiCanhBao({
+          actorId: command.actorId,
+          action: "SCHEDULE_IMPORT_PREVIEW_ROW_FAILED",
+          tableName: "lich_hoc",
+          message: "Preview import TKB thất bại ở một dòng do lỗi hệ thống, đã đánh dấu dòng không hợp lệ",
+          metadata: {
+            maHocKy: command.maHocKy ?? null,
+            rowIndex,
+            stage: "PREVIEW_IMPORT_ROW",
+            errorMessage: error instanceof Error ? error.message : "UNKNOWN_ERROR"
+          }
         });
 
-        if (monHocPhuHop.length > 1) {
-          loi.push("Môn học khớp nhiều kết quả, vui lòng chọn học kỳ hoặc map bằng mã môn học chính xác");
-        } else if (monHocPhuHop.length === 1) {
-          const monHoc = monHocPhuHop[0];
-          lichHoc = {
-            rowIndex,
-            maMonHoc: monHoc.maMonHoc,
-            maMon: monHoc.maMon,
-            tenMon: monHoc.tenMon,
-            soTinChi: monHoc.soTinChi,
-            tuDongTaoMonHoc: false,
-            thu: chuanHoa.thu,
-            tietBatDau: chuanHoa.tietBatDau,
-            soTiet: chuanHoa.soTiet,
-            phongHoc: chuanHoa.phongHoc ?? null,
-            ngayBatDau: chuanHoa.ngayBatDau ?? null,
-            ngayKetThuc: chuanHoa.ngayKetThuc ?? null
-          };
-        } else {
-          lichHoc = this.taoDongLichHocChoMonHocTuDong(command.maHocKy ?? null, rowIndex, chuanHoa, loi);
-        }
+        preview.push({
+          rowIndex,
+          hopLe: false,
+          trungLich: false,
+          loi: [LOI_XU_LY_DONG_IMPORT],
+          lichHoc: null,
+          xungDot: []
+        });
       }
-
-      const xungDot = lichHoc
-        ? await this.deps.khoLichHoc.timXungDot(command.actorId, this.layDuLieuLichHocKiemTra(lichHoc))
-        : [];
-
-      if (xungDot.length > 0) {
-        loi.push(`Trùng lịch học với ${xungDot.map((item) => item.tenMon).join(", ")}`);
-      }
-
-      preview.push({
-        rowIndex,
-        hopLe: loi.length === 0,
-        trungLich: xungDot.length > 0,
-        loi,
-        lichHoc,
-        xungDot
-      });
     }
 
     const loHopLe = preview
@@ -184,7 +214,7 @@ export class XuLyPreviewImportThoiKhoaBieu {
         actorId: command.actorId,
         action: "SCHEDULE_IMPORT_PREVIEW_HAS_INVALID_ROWS",
         tableName: "lich_hoc",
-        message: "Preview import TKB co dong khong hop le, he thong huong dan sinh vien nhap thu cong khi can",
+        message: "Preview import TKB có dòng không hợp lệ, hệ thống hướng dẫn sinh viên nhập thủ công khi cần",
         metadata: {
           soDongNguon: command.rows.length,
           soDongHopLe,

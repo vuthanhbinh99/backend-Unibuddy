@@ -17,7 +17,49 @@ type DuLieuGhiLogLoi = {
 
 type DuLieuGhiCanhBao = Omit<DuLieuGhiLogLoi, "error">;
 
-const layTenLoi = (error: unknown) => (error instanceof Error ? error.name : typeof error);
+type LoiCoThongTin = {
+  name?: unknown;
+  message?: unknown;
+  code?: unknown;
+  detail?: unknown;
+  constraint?: unknown;
+  routine?: unknown;
+};
+
+const layThongTinLoi = (error: unknown) => {
+  if (error instanceof Error) {
+    const loi = error as LoiCoThongTin;
+    return {
+      errorName: error.name,
+      errorMessage: error.message,
+      errorCode: typeof loi.code === "string" ? loi.code : null,
+      errorDetail: typeof loi.detail === "string" ? loi.detail : null,
+      errorConstraint: typeof loi.constraint === "string" ? loi.constraint : null,
+      errorRoutine: typeof loi.routine === "string" ? loi.routine : null
+    };
+  }
+
+  if (typeof error === "object" && error !== null) {
+    const loi = error as LoiCoThongTin;
+    return {
+      errorName: typeof loi.name === "string" ? loi.name : typeof error,
+      errorMessage: typeof loi.message === "string" ? loi.message : null,
+      errorCode: typeof loi.code === "string" ? loi.code : null,
+      errorDetail: typeof loi.detail === "string" ? loi.detail : null,
+      errorConstraint: typeof loi.constraint === "string" ? loi.constraint : null,
+      errorRoutine: typeof loi.routine === "string" ? loi.routine : null
+    };
+  }
+
+  return {
+    errorName: typeof error,
+    errorMessage: null,
+    errorCode: null,
+    errorDetail: null,
+    errorConstraint: null,
+    errorRoutine: null
+  };
+};
 
 export class DichVuGhiLogLoiThoiKhoaBieu {
   constructor(private readonly deps: PhuThuoc) {}
@@ -33,13 +75,13 @@ export class DichVuGhiLogLoiThoiKhoaBieu {
         message: input.message,
         metadata: {
           ...(input.metadata ?? {}),
-          errorName: layTenLoi(input.error)
+          ...layThongTinLoi(input.error)
         }
       });
     } catch (auditError) {
-      nhatKy.error("Khong the ghi audit loi module thoi khoa bieu", {
+      nhatKy.error("Không thể ghi log lỗi module thời khóa biểu", {
         error: auditError,
-        originalErrorName: layTenLoi(input.error)
+        originalError: layThongTinLoi(input.error)
       });
     }
   }
@@ -56,7 +98,7 @@ export class DichVuGhiLogLoiThoiKhoaBieu {
         metadata: input.metadata
       });
     } catch (auditError) {
-      nhatKy.error("Khong the ghi audit canh bao module thoi khoa bieu", {
+      nhatKy.error("Không thể ghi audit cảnh báo module thời khóa biểu", {
         error: auditError,
         action: input.action
       });

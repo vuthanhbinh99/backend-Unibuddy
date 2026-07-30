@@ -13,15 +13,15 @@ export type DongImportDaChuanHoa = Partial<DuLieuLichHoc> & {
 };
 
 const BO_COT_IMPORT = {
-  maMonHoc: ["ma mon hoc", "ma_mon_hoc", "ma hoc phan uuid", "ma hp uuid"],
-  maMon: ["ma mon", "ma_mon", "ma hoc phan", "ma hp", "code"],
+  maMonHoc: ["ma mon hoc uuid", "ma_mon_hoc uuid", "ma hoc phan uuid", "ma hp uuid", "uuid mon hoc"],
+  maMon: ["ma mon", "ma_mon", "ma mh", "mamh", "ma hoc phan", "ma hp", "ma so mon", "ma so hoc phan", "code"],
   tenMon: ["ten mon", "ten_mon", "mon hoc", "hoc phan", "ten hoc phan"],
   thu: ["thu", "thu trong tuan", "ngay hoc"],
-  tietBatDau: ["tiet bat dau", "tiet_bd", "tiet bd", "tiet", "ca hoc"],
-  soTiet: ["so tiet", "so_tiet", "tong tiet", "thoi luong"],
+  tietBatDau: ["tiet bat dau", "tiet_bd", "tiet bd", "tiet", "ca hoc", "khoang tiet"],
+  soTiet: ["so tiet", "so_tiet", "tong tiet", "thoi luong", "so tiet hoc"],
   soTinChi: ["so tin chi", "so_tin_chi", "tin chi", "stc"],
   phongHoc: ["phong", "phong hoc", "dia diem"],
-  ngayBatDau: ["ngay bat dau", "tu ngay", "bat dau"],
+  ngayBatDau: ["ngay bat dau", "tu ngay", "bat dau", "thoi gian hoc", "khoang ngay", "tu ngay den ngay"],
   ngayKetThuc: ["ngay ket thuc", "den ngay", "ket thuc"]
 } satisfies Record<keyof MappingCotImportThoiKhoaBieu, string[]>;
 
@@ -84,7 +84,7 @@ const layThu = (value: unknown) => {
 
 const layKhoangTiet = (tietBatDauRaw: unknown, soTietRaw: unknown) => {
   const tietText = String(tietBatDauRaw ?? "").trim();
-  const range = tietText.match(/(\d+)\s*[-–]\s*(\d+)/);
+  const range = tietText.match(/(\d+)\s*(?:đến|den|to|->|–|-)\s*(\d+)/i);
 
   if (range) {
     const start = Number.parseInt(range[1], 10);
@@ -125,10 +125,46 @@ const layNgay = (value: unknown) => {
     return `${iso[1]}-${iso[2].padStart(2, "0")}-${iso[3].padStart(2, "0")}`;
   }
 
-  const vn = raw.match(/^(\d{1,2})[/-](\d{1,2})[/-](\d{4})$/);
+  const vn = raw.match(/^(\d{1,2})[/-](\d{1,2})[/-](\d{2,4})$/);
 
   if (vn) {
-    return `${vn[3]}-${vn[2].padStart(2, "0")}-${vn[1].padStart(2, "0")}`;
+    const namGoc = Number.parseInt(vn[3], 10);
+    const nam = vn[3].length === 2 ? 2000 + namGoc : namGoc;
+    return `${String(nam).padStart(4, "0")}-${vn[2].padStart(2, "0")}-${vn[1].padStart(2, "0")}`;
+  }
+
+  return null;
+};
+
+const layKhoangNgayTuMotGiaTri = (value: unknown) => {
+  const raw = String(value ?? "").trim();
+
+  if (!raw) {
+    return null;
+  }
+
+  const tachKhoang = raw.match(
+    /(\d{1,2}[/-]\d{1,2}[/-]\d{2,4}|\d{4}-\d{1,2}-\d{1,2})\s*(?:đến|den|to|->|–|-)\s*(\d{1,2}[/-]\d{1,2}[/-]\d{2,4}|\d{4}-\d{1,2}-\d{1,2})/i
+  );
+
+  if (!tachKhoang) {
+    return null;
+  }
+
+  return {
+    ngayBatDau: layNgay(tachKhoang[1]),
+    ngayKetThuc: layNgay(tachKhoang[2]),
+    raw
+  };
+};
+
+const timKhoangNgayTrongDong = (row: DongImportThoiKhoaBieu) => {
+  for (const value of Object.values(row)) {
+    const khoang = layKhoangNgayTuMotGiaTri(value);
+
+    if (khoang) {
+      return khoang;
+    }
   }
 
   return null;
@@ -143,6 +179,34 @@ const cotGanDung = (headers: string[], aliases: string[]) => {
   });
 };
 
+// Các tiêu đề cột thường chứa cả khoảng thời gian bắt đầu/kết thúc trong một ô, ví dụ "Thời gian học".
+const ALIAS_COT_KHOANG_NGAY_GOP = ["thoi gian hoc", "khoang ngay", "tu ngay den ngay"];
+
+const laTieuDeCotKhoangNgayGop = (header: string) => {
+  const normalizedHeader = chuanHoaChuoi(header);
+  return ALIAS_COT_KHOANG_NGAY_GOP.some((alias) => normalizedHeader.includes(alias));
+};
+
+export const laGiaTriKhoangNgay = (value: unknown) => layKhoangNgayTuMotGiaTri(value) !== null;
+
+// Khi một cột duy nhất chứa khoảng "bắt đầu đến kết thúc" (ví dụ "16/02/25 đến 23/04/25"),
+// map cột đó cho cả ngayBatDau lẫn ngayKetThuc để cả hai đều được nhận diện và hiển thị.
+export const boSungMappingNgayKetThucTuCotGop = (
+  mapping: Partial<MappingCotImportThoiKhoaBieu>,
+  nguon: { rows?: Array<Record<string, unknown>> } = {}
+): Partial<MappingCotImportThoiKhoaBieu> => {
+  const cot = mapping.ngayBatDau;
+
+  if (!cot || mapping.ngayKetThuc) {
+    return mapping;
+  }
+
+  const laCotGop =
+    laTieuDeCotKhoangNgayGop(cot) || (nguon.rows ?? []).some((row) => laGiaTriKhoangNgay(row?.[cot]));
+
+  return laCotGop ? { ...mapping, ngayKetThuc: cot } : mapping;
+};
+
 export const goiYMappingCotImportThoiKhoaBieu = (headers: string[]) => {
   const mapping: Partial<MappingCotImportThoiKhoaBieu> = {};
 
@@ -154,7 +218,7 @@ export const goiYMappingCotImportThoiKhoaBieu = (headers: string[]) => {
     }
   }
 
-  return mapping;
+  return boSungMappingNgayKetThucTuCotGop(mapping);
 };
 
 export class DichVuMappingImportThoiKhoaBieu {
@@ -187,15 +251,32 @@ export class DichVuMappingImportThoiKhoaBieu {
       ? layKhoangTiet(row[mapping.tietBatDau], mapping.soTiet ? row[mapping.soTiet] : null)
       : { tietBatDau: null, soTiet: null };
     const phongHoc = layText(row, mapping.phongHoc) || null;
-    const ngayBatDau = layNgay(mapping.ngayBatDau ? row[mapping.ngayBatDau] : null);
-    const ngayKetThuc = layNgay(mapping.ngayKetThuc ? row[mapping.ngayKetThuc] : null);
+    let ngayBatDau = layNgay(mapping.ngayBatDau ? row[mapping.ngayBatDau] : null);
+    let ngayKetThuc = layNgay(mapping.ngayKetThuc ? row[mapping.ngayKetThuc] : null);
+    const thoiGianHocRaw = mapping.ngayBatDau
+      ? row[mapping.ngayBatDau]
+      : mapping.ngayKetThuc
+        ? row[mapping.ngayKetThuc]
+        : null;
+    const thoiGianHocTuCotDaMap = layKhoangNgayTuMotGiaTri(thoiGianHocRaw);
+    const thoiGianHocTuDong =
+      thoiGianHocTuCotDaMap ?? (!mapping.ngayBatDau && !mapping.ngayKetThuc ? timKhoangNgayTrongDong(row) : null);
+
+    if (!ngayBatDau && !ngayKetThuc && thoiGianHocTuDong?.ngayBatDau && thoiGianHocTuDong.ngayKetThuc) {
+      ngayBatDau = thoiGianHocTuDong.ngayBatDau;
+      ngayKetThuc = thoiGianHocTuDong.ngayKetThuc;
+    }
 
     if (!maMonHoc && !maMon && !tenMon) {
       loi.push("Thiếu thông tin môn học");
     }
 
     if (!thu || thu < 2 || thu > 8) {
-      loi.push("Thứ không hợp lệ, chỉ nhận giá trị từ 2 đến 8");
+      if (mapping.thu && !layText(row, mapping.thu)) {
+        loi.push("Thiếu thông tin cột Thứ");
+      } else {
+        loi.push("Thứ không hợp lệ, chỉ nhận giá trị từ 2 đến 8");
+      }
     }
 
     if (!tietBatDau || tietBatDau < 1 || tietBatDau > 12) {
@@ -214,16 +295,42 @@ export class DichVuMappingImportThoiKhoaBieu {
       loi.push("Khoảng tiết học vượt quá tiết 12");
     }
 
-    if (mapping.ngayBatDau && row[mapping.ngayBatDau] && !ngayBatDau) {
-      loi.push("Ngày bắt đầu không hợp lệ");
+    const coDuLieuNgayBatDau = Boolean(mapping.ngayBatDau && layText(row, mapping.ngayBatDau));
+    const coDuLieuNgayKetThuc = Boolean(mapping.ngayKetThuc && layText(row, mapping.ngayKetThuc));
+
+    if (coDuLieuNgayBatDau && !ngayBatDau) {
+      if (thoiGianHocTuDong?.raw) {
+        loi.push(`Sai định dạng cột Thời gian học (${thoiGianHocTuDong.raw})`);
+      } else {
+        loi.push("Ngày bắt đầu không hợp lệ");
+      }
     }
 
-    if (mapping.ngayKetThuc && row[mapping.ngayKetThuc] && !ngayKetThuc) {
+    if (coDuLieuNgayKetThuc && !ngayKetThuc) {
       loi.push("Ngày kết thúc không hợp lệ");
     }
 
     if (ngayBatDau && ngayKetThuc && ngayBatDau > ngayKetThuc) {
       loi.push("Ngày bắt đầu phải nhỏ hơn hoặc bằng ngày kết thúc");
+    }
+
+    const tenMonChuanHoa = (tenMon ?? "").toLowerCase();
+    const laMonDoAnHoacThucTap = tenMonChuanHoa.includes("đồ án") || tenMonChuanHoa.includes("do an") || tenMonChuanHoa.includes("thực tập") || tenMonChuanHoa.includes("thuc tap");
+
+    if (laMonDoAnHoacThucTap) {
+      const thieuThu = !thu || thu < 2 || thu > 8;
+      const thieuPhong = !phongHoc;
+
+      if (thieuThu && thieuPhong) {
+        const viTriLoiThieuThu = loi.indexOf("Thiếu thông tin cột Thứ");
+
+        if (viTriLoiThieuThu >= 0) {
+          loi.splice(viTriLoiThieuThu, 1);
+        }
+        loi.push("Thiếu thông tin Thứ và Phòng học (Môn Đồ án/Thực tập)");
+      } else if (thieuPhong) {
+        loi.push("Thiếu thông tin Phòng học (Môn Đồ án/Thực tập)");
+      }
     }
 
     return {

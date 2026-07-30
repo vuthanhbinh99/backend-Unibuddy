@@ -9,6 +9,7 @@ import {
   BoDieuKhienLichHoc,
   luocDoCapNhatLichHoc,
   luocDoDanhSachLichHoc,
+  luocDoGoiYMappingBangAi,
   luocDoPreviewImportThoiKhoaBieu,
   luocDoTaoLichHoc,
   luocDoXacNhanImportThoiKhoaBieu,
@@ -63,6 +64,7 @@ export const xayDungTuyenDuongLichHoc = (boPhuThuoc: BoPhuThuocUngDung) => {
   router.post("/import/headers", taiFileImportThoiKhoaBieu, controller.trichXuatHeaderImport);
   router.post("/import/preview", xacThucYeuCau(luocDoPreviewImportThoiKhoaBieu), controller.previewImport);
   router.post("/import/confirm", xacThucYeuCau(luocDoXacNhanImportThoiKhoaBieu), controller.xacNhanImport);
+  router.post("/ai/suggest-mapping", xacThucYeuCau(luocDoGoiYMappingBangAi), controller.goiYMappingBangAi);
   router.put("/:maLichHoc", xacThucYeuCau(luocDoCapNhatLichHoc), controller.capNhat);
   router.delete("/:maLichHoc", xacThucYeuCau(luocDoXoaLichHoc), controller.xoa);
 

@@ -56,5 +56,6 @@ export interface KhoLichHoc {
   tao(data: DuLieuLichHoc, boThucThi?: BoThucThiTruyVan): Promise<LichHoc>;
   capNhat(maLichHoc: string, data: DuLieuLichHoc, boThucThi?: BoThucThiTruyVan): Promise<LichHoc | null>;
   xoa(maLichHoc: string, boThucThi?: BoThucThiTruyVan): Promise<boolean>;
+  xoaTheoMonHoc(dsMaMonHoc: string[], boThucThi?: BoThucThiTruyVan): Promise<number>;
   taoNhieu(dsLichHoc: DuLieuLichHoc[], boThucThi?: BoThucThiTruyVan): Promise<LichHoc[]>;
 }

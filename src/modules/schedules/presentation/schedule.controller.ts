@@ -114,7 +114,8 @@ export const luocDoPreviewImportThoiKhoaBieu = z.object({
   body: z.object({
     maHocKy: maHocKy.optional().nullable().transform((value) => value ?? null),
     rows: z.array(dongImport).max(1000).default([]),
-    mapping: mappingImport.default({})
+    mapping: mappingImport.default({}),
+    replaceExistingCourseSchedules: z.coerce.boolean().optional().default(false)
   }),
   params: z.object({}),
   query: z.object({})
@@ -123,7 +124,17 @@ export const luocDoPreviewImportThoiKhoaBieu = z.object({
 export const luocDoXacNhanImportThoiKhoaBieu = z.object({
   body: z.object({
     maHocKy: maHocKy.optional().nullable().transform((value) => value ?? null),
-    items: z.array(itemImportDaChuanHoa).min(1).max(1000)
+    items: z.array(itemImportDaChuanHoa).min(1).max(1000),
+    replaceExistingCourseSchedules: z.coerce.boolean().optional().default(false)
+  }),
+  params: z.object({}),
+  query: z.object({})
+});
+
+export const luocDoGoiYMappingBangAi = z.object({
+  body: z.object({
+    headers: z.array(z.string().trim().min(1)).min(2).max(500),
+    sampleRows: z.array(dongImport).min(1).max(20)
   }),
   params: z.object({}),
   query: z.object({})
@@ -158,6 +169,19 @@ type DuLieuPreviewImport = {
 
 type DuLieuXacNhanImport = {
   body: z.infer<typeof luocDoXacNhanImportThoiKhoaBieu>["body"];
+};
+
+type DuLieuGoiYMappingBangAi = {
+  body: z.infer<typeof luocDoGoiYMappingBangAi>["body"];
+};
+
+const chuanHoaMaHocKy = (value?: string | null) => {
+  if (value === null || value === undefined) {
+    return null;
+  }
+
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : null;
 };
 
 export class BoDieuKhienLichHoc {
@@ -228,9 +252,10 @@ export class BoDieuKhienLichHoc {
     const { body } = req.duLieuDaXacThuc as DuLieuPreviewImport;
     const ketQua = await this.boPhuThuoc.xuLyPreviewImportThoiKhoaBieu.thucThi({
       actorId,
-      maHocKy: body.maHocKy,
+      maHocKy: chuanHoaMaHocKy(body.maHocKy),
       rows: body.rows,
-      mapping: body.mapping
+      mapping: body.mapping,
+      replaceExistingCourseSchedules: body.replaceExistingCourseSchedules
     });
 
     res.status(200).json(thanhCong(ketQua));
@@ -241,8 +266,21 @@ export class BoDieuKhienLichHoc {
     const { body } = req.duLieuDaXacThuc as DuLieuXacNhanImport;
     const ketQua = await this.boPhuThuoc.xuLyXacNhanImportThoiKhoaBieu.thucThi({
       actorId,
-      maHocKy: body.maHocKy,
-      items: body.items
+      maHocKy: chuanHoaMaHocKy(body.maHocKy),
+      items: body.items,
+      replaceExistingCourseSchedules: body.replaceExistingCourseSchedules
+    });
+
+    res.status(200).json(thanhCong(ketQua));
+  });
+
+  goiYMappingBangAi = xuLyBatDongBo(async (req: Request, res: Response) => {
+    const actorId = this.layActorId(req);
+    const { body } = req.duLieuDaXacThuc as DuLieuGoiYMappingBangAi;
+    const ketQua = await this.boPhuThuoc.xuLyGoiYMappingImportLichHocBangAi.thucThi({
+      actorId,
+      headers: body.headers,
+      sampleRows: body.sampleRows
     });
 
     res.status(200).json(thanhCong(ketQua));

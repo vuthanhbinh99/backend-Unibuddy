@@ -244,9 +244,16 @@ export class KhoLichHocPostgres implements KhoLichHoc {
       `
         ${cauTruyVanMonHocCoSo}
         WHERE hk.ma_nguoi_dung = $1
-          AND ($2::uuid IS NULL OR mh.ma_hoc_ky = $2)
+          AND ($2::uuid IS NULL OR mh.ma_hoc_ky = $2::uuid)
           AND (
-            ($3::uuid IS NOT NULL AND mh.ma_mon_hoc = $3)
+            (
+              CASE
+                WHEN $3::text IS NOT NULL
+                  AND $3::text ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
+                THEN mh.ma_mon_hoc = $3::uuid
+                ELSE FALSE
+              END
+            )
             OR ($4::text IS NOT NULL AND mh.ma_mon IS NOT NULL AND LOWER(TRIM(mh.ma_mon)) = LOWER(TRIM($4)))
             OR ($5::text IS NOT NULL AND LOWER(TRIM(mh.ten_mon)) = LOWER(TRIM($5)))
           )
@@ -276,8 +283,8 @@ export class KhoLichHocPostgres implements KhoLichHoc {
         WHERE hk.ma_nguoi_dung = $1
           AND lh.thu = $2
           AND ($7::uuid IS NULL OR lh.ma_lich_hoc <> $7)
-          AND lh.tiet_bat_dau <= ($3 + $4 - 1)
-          AND (lh.tiet_bat_dau + lh.so_tiet - 1) >= $3
+          AND lh.tiet_bat_dau <= ($3::smallint + $4::smallint - 1)
+          AND (lh.tiet_bat_dau + lh.so_tiet - 1) >= $3::smallint
           AND ($5::date IS NULL OR lh.ngay_ket_thuc IS NULL OR $5::date <= lh.ngay_ket_thuc)
           AND (lh.ngay_bat_dau IS NULL OR $6::date IS NULL OR lh.ngay_bat_dau <= $6::date)
         ORDER BY lh.thu ASC, lh.tiet_bat_dau ASC
@@ -362,6 +369,19 @@ export class KhoLichHocPostgres implements KhoLichHoc {
     const ketQua = await boThucThi.truyVan("DELETE FROM lich_hoc WHERE ma_lich_hoc = $1", [maLichHoc]);
 
     return (ketQua.rowCount ?? 0) > 0;
+  }
+
+  async xoaTheoMonHoc(dsMaMonHoc: string[], boThucThi: BoThucThiTruyVan = this.coSoDuLieu) {
+    if (dsMaMonHoc.length === 0) {
+      return 0;
+    }
+
+    const ketQua = await boThucThi.truyVan(
+      "DELETE FROM lich_hoc WHERE ma_mon_hoc = ANY($1::uuid[])",
+      [dsMaMonHoc]
+    );
+
+    return ketQua.rowCount ?? 0;
   }
 
   async taoNhieu(dsLichHoc: DuLieuLichHoc[], boThucThi: BoThucThiTruyVan = this.coSoDuLieu) {

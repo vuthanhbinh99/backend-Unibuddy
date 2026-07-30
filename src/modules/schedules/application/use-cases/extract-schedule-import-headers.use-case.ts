@@ -36,7 +36,7 @@ export class XuLyTrichXuatHeaderImportThoiKhoaBieu {
         await this.deps.dichVuGhiLogLoiThoiKhoaBieu.ghiCanhBao({
           actorId: command.actorId,
           action: "SCHEDULE_IMPORT_HEADER_REJECTED",
-          message: "Sinh vien trich xuat header import TKB that bai vi file khong hop le",
+          message: "Sinh viên trích xuất thời khóa biểu không thành công do file không hợp lệ",
           metadata: {
             tenFile: command.tenFile,
             mimeType: command.mimeType,
