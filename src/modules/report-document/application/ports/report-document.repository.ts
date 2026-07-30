@@ -10,7 +10,17 @@ export type DuLieuDuyetBaoCaoTaiLieu = {
 	ketQuaKiemDuyet: string;
 };
 
+export type DuLieuTaoBaoCaoTaiLieu = {
+	maTaiLieu: string;
+	nguoiBaoCao: string;
+	lyDo: string;
+};
+
 export interface KhoBaoCaoTaiLieu {
+	tao(
+		duLieu: DuLieuTaoBaoCaoTaiLieu,
+		boThucThi?: BoThucThiTruyVan
+	): Promise<ReportDocumentDetail | null>;
 	lietKe(
 		trangThai?: TrangThaiBaoCaoTaiLieu,
 		boThucThi?: BoThucThiTruyVan

@@ -1,5 +1,9 @@
 import type { BoThucThiTruyVan } from "../../../shared/database/database.js";
-import type { KhoBaoCaoTaiLieu, DuLieuDuyetBaoCaoTaiLieu } from "../application/ports/report-document.repository.js";
+import type {
+	KhoBaoCaoTaiLieu,
+	DuLieuDuyetBaoCaoTaiLieu,
+	DuLieuTaoBaoCaoTaiLieu
+} from "../application/ports/report-document.repository.js";
 import type {
 	ReportDocumentDetail,
 	ReportDocumentListItem,
@@ -68,6 +72,45 @@ const cauTruyVanCoSo = `
 
 export class KhoBaoCaoTaiLieuPostgres implements KhoBaoCaoTaiLieu {
 	constructor(private readonly coSoDuLieu: BoThucThiTruyVan) {}
+
+	async tao(
+		duLieu: DuLieuTaoBaoCaoTaiLieu,
+		boThucThi: BoThucThiTruyVan = this.coSoDuLieu
+	): Promise<ReportDocumentDetail | null> {
+		const ketQua = await boThucThi.truyVan<{ maBaoCao: string }>(
+			`
+				INSERT INTO bao_cao_tai_lieu (
+					ma_tai_lieu,
+					nguoi_bao_cao,
+					ly_do,
+					trang_thai,
+					thoi_gian_tao,
+					thoi_gian_cap_nhat
+				)
+				SELECT $1, $2, $3, 'CHO_XU_LY', NOW(), NOW()
+				WHERE EXISTS (
+					SELECT 1 FROM tai_lieu tl
+					WHERE tl.ma_tai_lieu = $1 AND tl.trang_thai = 'KHA_DUNG'
+				)
+				AND NOT EXISTS (
+					SELECT 1 FROM bao_cao_tai_lieu bc
+					WHERE bc.ma_tai_lieu = $1
+					  AND bc.nguoi_bao_cao = $2
+					  AND bc.trang_thai = 'CHO_XU_LY'
+				)
+				RETURNING ma_bao_cao AS "maBaoCao"
+			`,
+			[duLieu.maTaiLieu, duLieu.nguoiBaoCao, duLieu.lyDo]
+		);
+
+		const maBaoCao = ketQua.rows[0]?.maBaoCao;
+
+		if (!maBaoCao) {
+			return null;
+		}
+
+		return this.timTheoMa(maBaoCao, boThucThi);
+	}
 
 	async lietKe(
 		trangThai?: TrangThaiBaoCaoTaiLieu,
