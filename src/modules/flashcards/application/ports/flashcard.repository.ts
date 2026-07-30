@@ -36,7 +36,12 @@ export interface KhoFlashcard {
   ): Promise<TheFlashcard | null>;
   capNhatThe(data: DuLieuCapNhatTheFlashcard, boThucThi?: BoThucThiTruyVan): Promise<TheFlashcard | null>;
   xoaThe(maFlashcard: string, boThucThi?: BoThucThiTruyVan): Promise<boolean>;
-  lietKeTheCanOn(maBo: string, maNguoiDung: string, boThucThi?: BoThucThiTruyVan): Promise<TheFlashcard[]>;
+  lietKeTheCanOn(
+    maBo: string,
+    maNguoiDung: string,
+    hocLaiTatCa?: boolean,
+    boThucThi?: BoThucThiTruyVan
+  ): Promise<TheFlashcard[]>;
   capNhatTienDo(
     data: DuLieuCapNhatTienDoFlashcard,
     boThucThi?: BoThucThiTruyVan
