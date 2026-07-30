@@ -4,13 +4,25 @@ import { LoiUngDung } from "../../../../shared/errors/app-error.js";
 import { CacLoi } from "../../../../shared/errors/error-codes.js";
 import type { KhoFlashcard } from "../ports/flashcard.repository.js";
 import type { DichVuGhiLogLoiFlashcard } from "../services/flashcard-error-logger.service.js";
-import { kiemTraNoiDungTheFlashcard, laUuidHopLe } from "../services/flashcard-validation.service.js";
+import type { LoaiThe, NoiDungTracNghiem } from "../../domain/flashcard.js";
+import {
+  kiemTraNoiDungTheFlashcard,
+  kiemTraNoiDungTracNghiem,
+  laUuidHopLe
+} from "../services/flashcard-validation.service.js";
 
 export type LenhTaoTheFlashcard = {
   actorId: string;
   maBo: string;
+  loaiThe?: LoaiThe;
   matTruoc?: string | null;
   matSau?: string | null;
+  tracNghiem?: {
+    cauHoi?: string | null;
+    cacLuaChon?: Array<{ id?: string | null; noiDung?: string | null }> | null;
+    dapAnDung?: string | null;
+    giaiThich?: string | null;
+  } | null;
 };
 
 type PhuThuoc = {
@@ -24,7 +36,23 @@ export class XuLyTaoTheFlashcard {
   constructor(private readonly deps: PhuThuoc) {}
 
   async thucThi(command: LenhTaoTheFlashcard) {
-    const { matTruoc, matSau, loi } = kiemTraNoiDungTheFlashcard(command);
+    const laTracNghiem = command.loaiThe === "TRAC_NGHIEM";
+    const loaiThe: LoaiThe = laTracNghiem ? "TRAC_NGHIEM" : "TU_LUAN";
+    let matTruoc = "";
+    let matSau: string | NoiDungTracNghiem = "";
+    const loi: string[] = [];
+
+    if (laTracNghiem) {
+      const ketQua = kiemTraNoiDungTracNghiem(command.tracNghiem ?? {});
+      loi.push(...ketQua.loi);
+      matTruoc = ketQua.noiDung.cauHoi;
+      matSau = ketQua.noiDung;
+    } else {
+      const ketQua = kiemTraNoiDungTheFlashcard(command);
+      loi.push(...ketQua.loi);
+      matTruoc = ketQua.matTruoc;
+      matSau = ketQua.matSau;
+    }
 
     if (!laUuidHopLe(command.maBo)) {
       loi.push("Mã bộ flashcard không hợp lệ");
@@ -58,7 +86,7 @@ export class XuLyTaoTheFlashcard {
 
     try {
       const flashcard = await this.deps.giaoDich.thucThiTrongGiaoDich(async (tx) => {
-        const the = await this.deps.khoFlashcard.taoThe({ maBo: command.maBo, matTruoc, matSau }, tx);
+        const the = await this.deps.khoFlashcard.taoThe({ maBo: command.maBo, loaiThe, matTruoc, matSau }, tx);
 
         await this.deps.khoNhatKyHeThong.tao(
           {
