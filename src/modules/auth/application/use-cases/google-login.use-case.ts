@@ -6,6 +6,7 @@ import { LoiUngDung } from "../../../../shared/errors/app-error.js";
 import type { BoKiemTraDanhTinhGoogle } from "../ports/google-identity-verifier.js";
 import type { BoMaHoaMatKhau } from "../ports/password-hasher.js";
 import type { KhoPhienDangNhap } from "../ports/session.repository.js";
+import type { KhoDangKySinhVien } from "../ports/student-registration.repository.js";
 import type { DichVuToken } from "../ports/token.service.js";
 
 export type LenhDangNhapGoogle = {
@@ -27,6 +28,7 @@ export type KetQuaDangNhapGoogle = {
 
 type PhuThuoc = {
   khoNguoiDung: KhoNguoiDung;
+  khoDangKySinhVien: KhoDangKySinhVien;
   khoPhienDangNhap: KhoPhienDangNhap;
   khoNhatKyHeThong: KhoNhatKyHeThong;
   boMaHoaMatKhau: BoMaHoaMatKhau;
@@ -73,6 +75,8 @@ export class XuLyDangNhapGoogle {
     if (user.status === "CHO_DOI_MAT_KHAU") {
       throw LoiUngDung.khongCoQuyen("Tài khoản phải đổi mật khẩu trước khi tiếp tục");
     }
+
+    await this.damBaoHoSoSinhVienChoTaiKhoanGoogle(user);
 
     const accessToken = this.deps.dichVuToken.kyTokenTruyCap({
       id: user.id,
@@ -156,6 +160,18 @@ export class XuLyDangNhapGoogle {
         tx
       );
 
+      const maSinhVien = this.taoMaSinhVienGoogle(nguoiDungMoi.id);
+      await this.deps.khoDangKySinhVien.taoHoSoSinhVien(
+        {
+          maNguoiDung: nguoiDungMoi.id,
+          maSinhVien,
+          maTruong: null,
+          nganhHoc: null,
+          khoaHoc: null
+        },
+        tx
+      );
+
       await this.deps.khoNhatKyHeThong.tao(
         {
           actorId: nguoiDungMoi.id,
@@ -167,6 +183,7 @@ export class XuLyDangNhapGoogle {
           metadata: {
             email: input.email,
             googleSubject: input.googleSubject,
+            maSinhVien,
             roleCode: this.deps.maCodeVaiTroSinhVienMacDinh
           }
         },
@@ -175,6 +192,59 @@ export class XuLyDangNhapGoogle {
 
       return nguoiDungMoi;
     });
+  }
+
+  private async damBaoHoSoSinhVienChoTaiKhoanGoogle(user: NguoiDung): Promise<void> {
+    if (user.role.code !== this.deps.maCodeVaiTroSinhVienMacDinh) {
+      return;
+    }
+
+    const hoSoDaTonTai = await this.deps.khoDangKySinhVien.timHoSoSinhVienTheoNguoiDung(user.id);
+    if (hoSoDaTonTai) {
+      return;
+    }
+
+    await this.deps.giaoDich.thucThiTrongGiaoDich(async (tx) => {
+      const hoSoTrongGiaoDich = await this.deps.khoDangKySinhVien.timHoSoSinhVienTheoNguoiDung(
+        user.id,
+        tx
+      );
+      if (hoSoTrongGiaoDich) {
+        return;
+      }
+
+      const maSinhVien = this.taoMaSinhVienGoogle(user.id);
+      await this.deps.khoDangKySinhVien.taoHoSoSinhVien(
+        {
+          maNguoiDung: user.id,
+          maSinhVien,
+          maTruong: null,
+          nganhHoc: null,
+          khoaHoc: null
+        },
+        tx
+      );
+
+      await this.deps.khoNhatKyHeThong.tao(
+        {
+          actorId: user.id,
+          level: "INFO",
+          action: "AUTH_GOOGLE_STUDENT_PROFILE_CREATED",
+          tableName: "ho_so_sinh_vien",
+          recordId: user.id,
+          message: "Tạo hồ sơ sinh viên tối thiểu cho tài khoản Google",
+          metadata: {
+            email: user.email,
+            maSinhVien
+          }
+        },
+        tx
+      );
+    });
+  }
+
+  private taoMaSinhVienGoogle(userId: string): string {
+    return `GG${userId.replace(/-/g, "").slice(0, 24).toUpperCase()}`;
   }
 }
 

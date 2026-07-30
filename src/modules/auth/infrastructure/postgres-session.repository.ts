@@ -139,7 +139,6 @@ export class KhoPhienDangNhapPostgres implements KhoPhienDangNhap {
         UPDATE phien_dang_nhap
         SET fcm_token = NULL
         WHERE fcm_token = $1
-          AND thoi_gian_thu_hoi IS NULL
       `,
       [fcmToken]
     );

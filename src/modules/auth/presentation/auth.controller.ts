@@ -100,6 +100,11 @@ type DuLieuDatLaiMatKhau = z.infer<typeof luocDoDatLaiMatKhau>["body"];
 export class BoDieuKhienXacThuc {
   constructor(private readonly boPhuThuoc: BoPhuThuocUngDung) {}
 
+  lietKeTruongHoc = xuLyBatDongBo(async (_req: Request, res: Response) => {
+    const danhSachTruongHoc = await this.boPhuThuoc.xuLyDanhSachTruongHoc.thucThi();
+    res.status(200).json(thanhCong(danhSachTruongHoc));
+  });
+
   dangKySinhVien = xuLyBatDongBo(async (req: Request, res: Response) => {
     const body = (req.duLieuDaXacThuc as { body: DuLieuDangKySinhVien }).body;
 

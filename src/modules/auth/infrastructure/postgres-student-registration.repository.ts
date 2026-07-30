@@ -15,6 +15,7 @@ type DongHoSoSinhVienDangKy = {
   maNguoiDung: string;
   maSinhVien: string;
   maTruong: number | null;
+  maTruongCode?: string | null;
   nganhHoc: string | null;
   khoaHoc: string | null;
 };
@@ -29,6 +30,7 @@ const anhXaHoSoSinhVien = (row: DongHoSoSinhVienDangKy): HoSoSinhVienDangKy => (
   maNguoiDung: row.maNguoiDung,
   maSinhVien: row.maSinhVien,
   maTruong: row.maTruong,
+  maTruongCode: row.maTruongCode ?? null,
   nganhHoc: row.nganhHoc,
   khoaHoc: row.khoaHoc
 });
@@ -73,6 +75,7 @@ export class KhoDangKySinhVienPostgres implements KhoDangKySinhVien {
   async tonTaiMaSinhVien(
     maSinhVien: string,
     maTruong: number | null,
+    loaiTruMaNguoiDung: string | null = null,
     boThucThi: BoThucThiTruyVan = this.coSoDuLieu
   ) {
     const ketQua = await boThucThi.truyVan<{ exists: boolean }>(
@@ -86,12 +89,37 @@ export class KhoDangKySinhVienPostgres implements KhoDangKySinhVien {
               OR ma_truong = $2
               OR ma_truong IS NULL
             )
+            AND ($3::uuid IS NULL OR ma_nguoi_dung <> $3::uuid)
         ) AS "exists"
       `,
-      [maSinhVien, maTruong]
+      [maSinhVien, maTruong, loaiTruMaNguoiDung]
     );
 
     return ketQua.rows[0]?.exists ?? false;
+  }
+
+  async timHoSoSinhVienTheoNguoiDung(
+    maNguoiDung: string,
+    boThucThi: BoThucThiTruyVan = this.coSoDuLieu
+  ) {
+    const ketQua = await boThucThi.truyVan<DongHoSoSinhVienDangKy>(
+      `
+        SELECT
+          hsv.ma_nguoi_dung AS "maNguoiDung",
+          hsv.ma_sinh_vien AS "maSinhVien",
+          hsv.ma_truong AS "maTruong",
+          th.ma_truong_code AS "maTruongCode",
+          hsv.nganh_hoc AS "nganhHoc",
+          hsv.khoa_hoc AS "khoaHoc"
+        FROM ho_so_sinh_vien hsv
+        LEFT JOIN truong_hoc th ON th.ma_truong = hsv.ma_truong
+        WHERE hsv.ma_nguoi_dung = $1
+        LIMIT 1
+      `,
+      [maNguoiDung]
+    );
+
+    return ketQua.rows[0] ? anhXaHoSoSinhVien(ketQua.rows[0]) : null;
   }
 
   async taoHoSoSinhVien(
@@ -114,6 +142,7 @@ export class KhoDangKySinhVienPostgres implements KhoDangKySinhVien {
           ma_nguoi_dung AS "maNguoiDung",
           ma_sinh_vien AS "maSinhVien",
           ma_truong AS "maTruong",
+          NULL::text AS "maTruongCode",
           nganh_hoc AS "nganhHoc",
           khoa_hoc AS "khoaHoc"
       `,
@@ -121,5 +150,30 @@ export class KhoDangKySinhVienPostgres implements KhoDangKySinhVien {
     );
 
     return anhXaHoSoSinhVien(ketQua.rows[0]);
+  }
+
+  async capNhatMaSinhVien(
+    maNguoiDung: string,
+    maSinhVien: string,
+    boThucThi: BoThucThiTruyVan = this.coSoDuLieu
+  ) {
+    const ketQua = await boThucThi.truyVan<DongHoSoSinhVienDangKy>(
+      `
+        UPDATE ho_so_sinh_vien
+        SET ma_sinh_vien = $2,
+            thoi_gian_cap_nhat = NOW()
+        WHERE ma_nguoi_dung = $1
+        RETURNING
+          ma_nguoi_dung AS "maNguoiDung",
+          ma_sinh_vien AS "maSinhVien",
+          ma_truong AS "maTruong",
+          NULL::text AS "maTruongCode",
+          nganh_hoc AS "nganhHoc",
+          khoa_hoc AS "khoaHoc"
+      `,
+      [maNguoiDung, maSinhVien]
+    );
+
+    return ketQua.rows[0] ? anhXaHoSoSinhVien(ketQua.rows[0]) : null;
   }
 }

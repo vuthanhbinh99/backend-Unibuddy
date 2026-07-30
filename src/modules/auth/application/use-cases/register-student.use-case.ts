@@ -50,7 +50,7 @@ export class XuLyDangKySinhVien {
     const ketQuaMatKhau = await this.deps.boKiemTraDoMatKhau.kiemTra(command.password,
       [email, fullName, maSinhVien]
     );
-    if(ketQuaMatKhau.dat){
+    if (!ketQuaMatKhau.dat) {
       throw LoiUngDung.yeuCauSai("Mật khẩu không đủ mạnh: ", {
         tieuChi: ketQuaMatKhau.tieuChi,
         goiY: ketQuaMatKhau.goiY

@@ -21,6 +21,7 @@ export const xayDungTuyenDuongXacThuc = (boPhuThuoc: BoPhuThuocUngDung) => {
   const controller = new BoDieuKhienXacThuc(boPhuThuoc);
   const auth = new BoTrungGianXacThuc(boPhuThuoc);
 
+  router.get("/schools", controller.lietKeTruongHoc);
   router.post("/register", xacThucYeuCau(luocDoDangKySinhVien), controller.dangKySinhVien);
   router.post("/login", xacThucYeuCau(luocDoDangNhap), controller.dangNhap);
   router.post("/google", xacThucYeuCau(luocDoDangNhapGoogle), controller.dangNhapGoogle);
