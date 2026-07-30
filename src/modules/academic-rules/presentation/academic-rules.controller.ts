@@ -7,7 +7,6 @@ import { thanhCong } from "../../../shared/http/api-response.js";
 const luocDoMaTruongCode = z.string().trim().min(1).transform((value) => value.toUpperCase());
 
 const luocDoMucThangDiem = z.object({
-  thuTu: z.number().int(),
   diemTu: z.number(),
   diemDen: z.number(),
   diemChu: z.string().trim().min(1),
@@ -15,7 +14,6 @@ const luocDoMucThangDiem = z.object({
 });
 
 const luocDoQuyCheHocLuc = z.object({
-  thuTu: z.number().int(),
   xepLoai: z.string().trim().min(1),
   gpaTu: z.number(),
   gpaDen: z.number()
@@ -52,7 +50,6 @@ type DuLieuCoMaTruongCode = {
 type DuLieuCapNhatThangDiem = {
   body: {
     mucThangDiem: Array<{
-      thuTu: number;
       diemTu: number;
       diemDen: number;
       diemChu: string;
@@ -64,7 +61,6 @@ type DuLieuCapNhatThangDiem = {
 type DuLieuCapNhatQuyCheHocLuc = {
   body: {
     quyCheHocLuc: Array<{
-      thuTu: number;
       xepLoai: string;
       gpaTu: number;
       gpaDen: number;

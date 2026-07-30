@@ -1,5 +1,5 @@
-import { v7 as uuidv7 } from "uuid";
 import type { BoThucThiTruyVan } from "../../../shared/database/database.js";
+import { LoiUngDung } from "../../../shared/errors/app-error.js";
 import type {
   CauHinhHocThuatTruongHoc,
   MucThangDiem,
@@ -9,72 +9,99 @@ import type {
 } from "../domain/academic-rules.js";
 import type { KhoHocThuatTruongHoc } from "../application/ports/academic-rules.repository.js";
 
+const TEN_THANG_DIEM_MAC_DINH = "Thang điểm chữ";
+
+type DongThangDiem = {
+  maThangDiem: number;
+  tenThangDiem: string;
+};
+
 type DongMucThangDiem = {
-  maThangDiem: string;
-  maTruongCode: string;
-  thuTu: number;
-  diemTu: number;
-  diemDen: number;
+  diemTu: string | number;
+  diemDen: string | number;
   diemChu: string;
-  he4: number;
-  createdAt: Date;
-  updatedAt: Date;
+  he4: string | number;
 };
 
 type DongQuyCheHocLuc = {
-  maQuyCheHocLuc: string;
-  maTruongCode: string;
-  thuTu: number;
   xepLoai: string;
-  gpaTu: number;
-  gpaDen: number;
-  createdAt: Date;
-  updatedAt: Date;
+  gpaTu: string | number;
+  gpaDen: string | number;
 };
 
+type DongMaTruong = {
+  maTruong: number;
+};
+
+const soTuText = (value: string | number): number =>
+  typeof value === "number" ? value : Number(value);
+
 const mapThangDiem = (row: DongMucThangDiem): MucThangDiem => ({
-  maThangDiem: row.maThangDiem,
-  maTruongCode: row.maTruongCode,
-  thuTu: row.thuTu,
-  diemTu: row.diemTu,
-  diemDen: row.diemDen,
+  diemTu: soTuText(row.diemTu),
+  diemDen: soTuText(row.diemDen),
   diemChu: row.diemChu,
-  he4: row.he4,
-  createdAt: row.createdAt,
-  updatedAt: row.updatedAt
+  he4: soTuText(row.he4)
 });
 
 const mapQuyCheHocLuc = (row: DongQuyCheHocLuc): QuyCheHocLuc => ({
-  maQuyCheHocLuc: row.maQuyCheHocLuc,
-  maTruongCode: row.maTruongCode,
-  thuTu: row.thuTu,
   xepLoai: row.xepLoai,
-  gpaTu: row.gpaTu,
-  gpaDen: row.gpaDen,
-  createdAt: row.createdAt,
-  updatedAt: row.updatedAt
+  gpaTu: soTuText(row.gpaTu),
+  gpaDen: soTuText(row.gpaDen)
 });
 
 export class KhoHocThuatTruongHocPostgres implements KhoHocThuatTruongHoc {
   constructor(private readonly coSoDuLieu: BoThucThiTruyVan) {}
 
-  async layCauHinh(maTruongCode: string, boThucThi: BoThucThiTruyVan = this.coSoDuLieu): Promise<CauHinhHocThuatTruongHoc> {
-    const thangDiemKetQua = await boThucThi.truyVan<DongMucThangDiem>(
+  private async timMaTruong(
+    maTruongCode: string,
+    boThucThi: BoThucThiTruyVan
+  ): Promise<number> {
+    const ketQua = await boThucThi.truyVan<DongMaTruong>(
+      `SELECT ma_truong AS "maTruong" FROM truong_hoc WHERE ma_truong_code = $1 LIMIT 1`,
+      [maTruongCode]
+    );
+
+    const maTruong = ketQua.rows[0]?.maTruong;
+
+    if (maTruong == null) {
+      throw LoiUngDung.khongTimThay("Không tìm thấy trường học");
+    }
+
+    return maTruong;
+  }
+
+  async layCauHinh(
+    maTruongCode: string,
+    boThucThi: BoThucThiTruyVan = this.coSoDuLieu
+  ): Promise<CauHinhHocThuatTruongHoc> {
+    const thangDiemKetQua = await boThucThi.truyVan<DongThangDiem>(
       `
         SELECT
           td.ma_thang_diem AS "maThangDiem",
-          td.ma_truong_code AS "maTruongCode",
-          td.thu_tu AS "thuTu",
-          ct.diem_tu AS "diemTu",
-          ct.diem_den AS "diemDen",
-          td.diem_chu AS "diemChu",
-          td.he_4 AS "he4",
-          td.thoi_gian_tao AS "createdAt",
-          td.thoi_gian_cap_nhat AS "updatedAt"
+          td.ten_thang_diem AS "tenThangDiem"
         FROM thang_diem td
-        INNER JOIN chi_tiet_thang_diem ct ON ct.ma_thang_diem = td.ma_thang_diem
-        WHERE td.ma_truong_code = $1
-        ORDER BY td.thu_tu ASC, ct.diem_tu ASC
+        INNER JOIN truong_hoc th ON th.ma_truong = td.ma_truong
+        WHERE th.ma_truong_code = $1
+        ORDER BY td.ma_thang_diem ASC
+        LIMIT 1
+      `,
+      [maTruongCode]
+    );
+
+    const thangDiem = thangDiemKetQua.rows[0] ?? null;
+
+    const mucThangDiemKetQua = await boThucThi.truyVan<DongMucThangDiem>(
+      `
+        SELECT
+          ct.diem_thap_nhat AS "diemTu",
+          ct.diem_cao_nhat AS "diemDen",
+          ct.diem_chu AS "diemChu",
+          ct.diem_he_4 AS "he4"
+        FROM chi_tiet_thang_diem ct
+        INNER JOIN thang_diem td ON td.ma_thang_diem = ct.ma_thang_diem
+        INNER JOIN truong_hoc th ON th.ma_truong = td.ma_truong
+        WHERE th.ma_truong_code = $1
+        ORDER BY ct.diem_thap_nhat ASC
       `,
       [maTruongCode]
     );
@@ -82,24 +109,21 @@ export class KhoHocThuatTruongHocPostgres implements KhoHocThuatTruongHoc {
     const quyCheKetQua = await boThucThi.truyVan<DongQuyCheHocLuc>(
       `
         SELECT
-          qchl.ma_quy_che_hoc_luc AS "maQuyCheHocLuc",
-          qchl.ma_truong_code AS "maTruongCode",
-          qchl.thu_tu AS "thuTu",
-          qchl.xep_loai AS "xepLoai",
-          qchl.gpa_tu AS "gpaTu",
-          qchl.gpa_den AS "gpaDen",
-          qchl.thoi_gian_tao AS "createdAt",
-          qchl.thoi_gian_cap_nhat AS "updatedAt"
+          qchl.ten_xep_loai AS "xepLoai",
+          qchl.gpa_toi_thieu AS "gpaTu",
+          qchl.gpa_toi_da AS "gpaDen"
         FROM quy_che_hoc_luc qchl
-        WHERE qchl.ma_truong_code = $1
-        ORDER BY qchl.thu_tu ASC, qchl.gpa_tu ASC
+        INNER JOIN truong_hoc th ON th.ma_truong = qchl.ma_truong
+        WHERE th.ma_truong_code = $1
+        ORDER BY qchl.gpa_toi_thieu ASC
       `,
       [maTruongCode]
     );
 
     return {
       maTruongCode,
-      mucThangDiem: thangDiemKetQua.rows.map(mapThangDiem),
+      tenThangDiem: thangDiem?.tenThangDiem ?? null,
+      mucThangDiem: mucThangDiemKetQua.rows.map(mapThangDiem),
       quyCheHocLuc: quyCheKetQua.rows.map(mapQuyCheHocLuc)
     };
   }
@@ -108,43 +132,71 @@ export class KhoHocThuatTruongHocPostgres implements KhoHocThuatTruongHoc {
     maTruongCode: string,
     mucThangDiem: MucThangDiemNhap[],
     boThucThi: BoThucThiTruyVan = this.coSoDuLieu
-  ) {
-    await boThucThi.truyVan(`DELETE FROM chi_tiet_thang_diem WHERE ma_truong_code = $1`, [maTruongCode]);
-    await boThucThi.truyVan(`DELETE FROM thang_diem WHERE ma_truong_code = $1`, [maTruongCode]);
+  ): Promise<void> {
+    const maTruong = await this.timMaTruong(maTruongCode, boThucThi);
 
-    for (const muc of mucThangDiem) {
-      const maThangDiem = uuidv7();
+    const thangDiemHienTai = await boThucThi.truyVan<{ maThangDiem: number; tenThangDiem: string }>(
+      `
+        SELECT ma_thang_diem AS "maThangDiem", ten_thang_diem AS "tenThangDiem"
+        FROM thang_diem
+        WHERE ma_truong = $1
+        ORDER BY ma_thang_diem ASC
+        LIMIT 1
+      `,
+      [maTruong]
+    );
 
-      await boThucThi.truyVan(
+    let maThangDiem = thangDiemHienTai.rows[0]?.maThangDiem ?? null;
+
+    const diemThapNhat = Math.min(...mucThangDiem.map((muc) => muc.diemTu));
+    const diemCaoNhat = Math.max(...mucThangDiem.map((muc) => muc.diemDen));
+
+    if (maThangDiem == null) {
+      const themMoi = await boThucThi.truyVan<{ maThangDiem: number }>(
         `
           INSERT INTO thang_diem (
-            ma_thang_diem,
-            ma_truong_code,
-            thu_tu,
-            diem_chu,
-            he_4,
+            ma_truong,
+            ten_thang_diem,
+            diem_thap_nhat,
+            diem_cao_nhat,
             thoi_gian_tao,
             thoi_gian_cap_nhat
           )
-          VALUES ($1, $2, $3, $4, $5, NOW(), NOW())
+          VALUES ($1, $2, $3, $4, NOW(), NOW())
+          RETURNING ma_thang_diem AS "maThangDiem"
         `,
-        [maThangDiem, maTruongCode, muc.thuTu, muc.diemChu, muc.he4]
+        [maTruong, TEN_THANG_DIEM_MAC_DINH, diemThapNhat, diemCaoNhat]
       );
 
+      maThangDiem = themMoi.rows[0].maThangDiem;
+    } else {
+      await boThucThi.truyVan(
+        `
+          UPDATE thang_diem
+          SET diem_thap_nhat = $2,
+              diem_cao_nhat = $3,
+              thoi_gian_cap_nhat = NOW()
+          WHERE ma_thang_diem = $1
+        `,
+        [maThangDiem, diemThapNhat, diemCaoNhat]
+      );
+
+      await boThucThi.truyVan(`DELETE FROM chi_tiet_thang_diem WHERE ma_thang_diem = $1`, [maThangDiem]);
+    }
+
+    for (const muc of mucThangDiem) {
       await boThucThi.truyVan(
         `
           INSERT INTO chi_tiet_thang_diem (
-            ma_chi_tiet_thang_diem,
-            ma_truong_code,
             ma_thang_diem,
-            diem_tu,
-            diem_den,
-            thoi_gian_tao,
-            thoi_gian_cap_nhat
+            diem_chu,
+            diem_he_4,
+            diem_thap_nhat,
+            diem_cao_nhat
           )
-          VALUES ($1, $2, $3, $4, $5, NOW(), NOW())
+          VALUES ($1, $2, $3, $4, $5)
         `,
-        [uuidv7(), maTruongCode, maThangDiem, muc.diemTu, muc.diemDen]
+        [maThangDiem, muc.diemChu, muc.he4, muc.diemTu, muc.diemDen]
       );
     }
   }
@@ -153,25 +205,23 @@ export class KhoHocThuatTruongHocPostgres implements KhoHocThuatTruongHoc {
     maTruongCode: string,
     quyCheHocLuc: QuyCheHocLucNhap[],
     boThucThi: BoThucThiTruyVan = this.coSoDuLieu
-  ) {
-    await boThucThi.truyVan(`DELETE FROM quy_che_hoc_luc WHERE ma_truong_code = $1`, [maTruongCode]);
+  ): Promise<void> {
+    const maTruong = await this.timMaTruong(maTruongCode, boThucThi);
+
+    await boThucThi.truyVan(`DELETE FROM quy_che_hoc_luc WHERE ma_truong = $1`, [maTruong]);
 
     for (const muc of quyCheHocLuc) {
       await boThucThi.truyVan(
         `
           INSERT INTO quy_che_hoc_luc (
-            ma_quy_che_hoc_luc,
-            ma_truong_code,
-            thu_tu,
-            xep_loai,
-            gpa_tu,
-            gpa_den,
-            thoi_gian_tao,
-            thoi_gian_cap_nhat
+            ma_truong,
+            ten_xep_loai,
+            gpa_toi_thieu,
+            gpa_toi_da
           )
-          VALUES ($1, $2, $3, $4, $5, $6, NOW(), NOW())
+          VALUES ($1, $2, $3, $4)
         `,
-        [uuidv7(), maTruongCode, muc.thuTu, muc.xepLoai, muc.gpaTu, muc.gpaDen]
+        [maTruong, muc.xepLoai, muc.gpaTu, muc.gpaDen]
       );
     }
   }

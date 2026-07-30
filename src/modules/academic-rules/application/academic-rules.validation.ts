@@ -1,15 +1,12 @@
 import { LoiUngDung } from "../../../shared/errors/app-error.js";
 import type { MucThangDiemNhap, QuyCheHocLucNhap } from "../domain/academic-rules.js";
 
-const sapXepTheoThuTu = <T extends { thuTu: number; diemTu?: number; gpaTu?: number }>(items: T[]) =>
-  [...items].sort((a, b) => a.thuTu - b.thuTu || (a.diemTu ?? a.gpaTu ?? 0) - (b.diemTu ?? b.gpaTu ?? 0));
-
 export const xacThucDanhSachThangDiem = (mucThangDiem: MucThangDiemNhap[]) => {
   if (mucThangDiem.length === 0) {
     throw LoiUngDung.yeuCauSai("Danh sách thang điểm không được để trống");
   }
 
-  const daSapXep = sapXepTheoThuTu(mucThangDiem);
+  const daSapXep = [...mucThangDiem].sort((a, b) => a.diemTu - b.diemTu);
 
   daSapXep.forEach((muc, index) => {
     if (muc.diemTu > muc.diemDen) {
@@ -32,7 +29,7 @@ export const xacThucDanhSachQuyCheHocLuc = (quyCheHocLuc: QuyCheHocLucNhap[]) =>
     throw LoiUngDung.yeuCauSai("Danh sách quy chế học lực không được để trống");
   }
 
-  const daSapXep = sapXepTheoThuTu(quyCheHocLuc);
+  const daSapXep = [...quyCheHocLuc].sort((a, b) => a.gpaTu - b.gpaTu);
 
   daSapXep.forEach((muc, index) => {
     if (muc.gpaTu > muc.gpaDen) {
