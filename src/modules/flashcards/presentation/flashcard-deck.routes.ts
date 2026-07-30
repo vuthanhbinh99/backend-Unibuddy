@@ -9,7 +9,9 @@ import {
   luocDoBatDauOnTapFlashcard,
   luocDoCapNhatBoFlashcard,
   luocDoDanhSachBoFlashcard,
+  luocDoGhiKetQuaPhienFlashcard,
   luocDoTaoBoFlashcard,
+  luocDoTaoTheFlashcardBangAi,
   luocDoTaoTheFlashcard,
   luocDoXoaBoFlashcard
 } from "./flashcard.controller.js";
@@ -24,12 +26,17 @@ const uploadImport = multer({
   }
 });
 
-const ghiCanhBaoTaiFile = async (boPhuThuoc: BoPhuThuocUngDung, req: Request, message: string) => {
+const ghiCanhBaoTaiFile = async (
+  boPhuThuoc: BoPhuThuocUngDung,
+  req: Request,
+  message: string,
+  action = "FLASHCARD_IMPORT_UPLOAD_FAILED"
+) => {
   try {
     await boPhuThuoc.khoNhatKyHeThong.tao({
       actorId: req.user?.id ?? null,
       level: "WARNING",
-      action: "FLASHCARD_IMPORT_UPLOAD_FAILED",
+      action,
       tableName: "flashcard",
       recordId: req.params.maBo,
       message,
@@ -43,23 +50,25 @@ const ghiCanhBaoTaiFile = async (boPhuThuoc: BoPhuThuocUngDung, req: Request, me
   }
 };
 
-const taiFileImportFlashcard = (boPhuThuoc: BoPhuThuocUngDung) => (req: Request, res: Response, next: NextFunction) => {
-  uploadImport.single("file")(req, res, (error: unknown) => {
-    if (!error) {
-      next();
-      return;
-    }
+const taiFileImportFlashcard =
+  (boPhuThuoc: BoPhuThuocUngDung, action: string, messageQuaLon: string, messageLoi: string) =>
+  (req: Request, res: Response, next: NextFunction) => {
+    uploadImport.single("file")(req, res, (error: unknown) => {
+      if (!error) {
+        next();
+        return;
+      }
 
-    if (error instanceof multer.MulterError && error.code === "LIMIT_FILE_SIZE") {
-      void ghiCanhBaoTaiFile(boPhuThuoc, req, "Nhập thẻ từ file thất bại - File vượt quá 5MB");
-      next(LoiUngDung.yeuCauSai("File vượt quá dung lượng tối đa 5MB"));
-      return;
-    }
+      if (error instanceof multer.MulterError && error.code === "LIMIT_FILE_SIZE") {
+        void ghiCanhBaoTaiFile(boPhuThuoc, req, messageQuaLon, action);
+        next(LoiUngDung.yeuCauSai("File vượt quá dung lượng tối đa 5MB"));
+        return;
+      }
 
-    void ghiCanhBaoTaiFile(boPhuThuoc, req, "Nhập thẻ từ file thất bại - Không thể tải file lên backend");
-    next(LoiUngDung.yeuCauSai("Không thể tải file flashcard, vui lòng kiểm tra lại định dạng và dung lượng"));
-  });
-};
+      void ghiCanhBaoTaiFile(boPhuThuoc, req, messageLoi, action);
+      next(LoiUngDung.yeuCauSai("Không thể tải file lên, vui lòng kiểm tra lại định dạng và dung lượng"));
+    });
+  };
 
 export const xayDungTuyenDuongBoFlashcard = (boPhuThuoc: BoPhuThuocUngDung) => {
   const router = Router();
@@ -73,8 +82,43 @@ export const xayDungTuyenDuongBoFlashcard = (boPhuThuoc: BoPhuThuocUngDung) => {
   router.put("/:maBo", xacThucYeuCau(luocDoCapNhatBoFlashcard), controller.capNhatBo);
   router.delete("/:maBo", xacThucYeuCau(luocDoXoaBoFlashcard), controller.xoaBo);
   router.post("/:maBo/flashcards", xacThucYeuCau(luocDoTaoTheFlashcard), controller.taoThe);
-  router.post("/:maBo/flashcards/import", taiFileImportFlashcard(boPhuThuoc), controller.importThe);
+  router.post(
+    "/:maBo/flashcards/import",
+    taiFileImportFlashcard(
+      boPhuThuoc,
+      "FLASHCARD_IMPORT_UPLOAD_FAILED",
+      "Nhập thẻ từ file thất bại - File vượt quá 5MB",
+      "Nhập thẻ từ file thất bại - Không thể tải file lên backend"
+    ),
+    controller.importThe
+  );
+  router.post("/:maBo/flashcards/ai-generate", xacThucYeuCau(luocDoTaoTheFlashcardBangAi), controller.taoTheBangAi);
+  router.post(
+    "/:maBo/flashcards/ai-import",
+    taiFileImportFlashcard(
+      boPhuThuoc,
+      "FLASHCARD_AI_IMPORT_UPLOAD_FAILED",
+      "Tạo thẻ AI từ file thất bại - File vượt quá 5MB",
+      "Tạo thẻ AI từ file thất bại - Không thể tải file lên backend"
+    ),
+    controller.aiImportThe
+  );
+  router.post(
+    "/:maBo/flashcards/ai-import-tu-luan",
+    taiFileImportFlashcard(
+      boPhuThuoc,
+      "FLASHCARD_AI_ESSAY_IMPORT_UPLOAD_FAILED",
+      "Tạo thẻ tự luận AI từ file thất bại - File vượt quá 5MB",
+      "Tạo thẻ tự luận AI từ file thất bại - Không thể tải file lên backend"
+    ),
+    controller.aiImportTheTuLuan
+  );
   router.get("/:maBo/review", xacThucYeuCau(luocDoBatDauOnTapFlashcard), controller.batDauOnTap);
+  router.post(
+    "/:maBo/session-result",
+    xacThucYeuCau(luocDoGhiKetQuaPhienFlashcard),
+    controller.ghiKetQuaPhien
+  );
 
   return router;
 };

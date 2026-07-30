@@ -4,13 +4,25 @@ import { LoiUngDung } from "../../../../shared/errors/app-error.js";
 import { CacLoi } from "../../../../shared/errors/error-codes.js";
 import type { KhoFlashcard } from "../ports/flashcard.repository.js";
 import type { DichVuGhiLogLoiFlashcard } from "../services/flashcard-error-logger.service.js";
-import { kiemTraNoiDungTheFlashcard, laUuidHopLe } from "../services/flashcard-validation.service.js";
+import type { LoaiThe, NoiDungTracNghiem } from "../../domain/flashcard.js";
+import {
+  kiemTraNoiDungTheFlashcard,
+  kiemTraNoiDungTracNghiem,
+  laUuidHopLe
+} from "../services/flashcard-validation.service.js";
 
 export type LenhCapNhatTheFlashcard = {
   actorId: string;
   maFlashcard: string;
+  loaiThe?: LoaiThe;
   matTruoc?: string | null;
   matSau?: string | null;
+  tracNghiem?: {
+    cauHoi?: string | null;
+    cacLuaChon?: Array<{ id?: string | null; noiDung?: string | null }> | null;
+    dapAnDung?: string | null;
+    giaiThich?: string | null;
+  } | null;
 };
 
 type PhuThuoc = {
@@ -24,22 +36,15 @@ export class XuLyCapNhatTheFlashcard {
   constructor(private readonly deps: PhuThuoc) {}
 
   async thucThi(command: LenhCapNhatTheFlashcard) {
-    const { matTruoc, matSau, loi } = kiemTraNoiDungTheFlashcard(command);
-
     if (!laUuidHopLe(command.maFlashcard)) {
-      loi.push("Mã thẻ flashcard không hợp lệ");
-    }
-
-    if (loi.length > 0) {
       await this.deps.dichVuGhiLogLoiFlashcard.ghiCanhBao({
         actorId: command.actorId,
         action: "FLASHCARD_CARD_UPDATE_VALIDATION_FAILED",
         tableName: "flashcard",
         recordId: command.maFlashcard,
-        message: "Cập nhật thẻ thất bại - Dữ liệu trống",
-        metadata: { errors: loi }
+        message: "Cập nhật thẻ thất bại - Mã thẻ không hợp lệ"
       });
-      throw LoiUngDung.yeuCauSai("Nội dung thẻ không được để trống!", loi);
+      throw LoiUngDung.yeuCauSai("Mã thẻ flashcard không hợp lệ");
     }
 
     const theHienTai = await this.deps.khoFlashcard.timTheCuaSinhVien(command.maFlashcard, command.actorId);
@@ -56,9 +61,42 @@ export class XuLyCapNhatTheFlashcard {
       throw LoiUngDung.khongCoQuyen("Bạn không có quyền chỉnh sửa thẻ học này!");
     }
 
+    // Loại thẻ mặc định theo dữ liệu gửi lên, nếu không có thì giữ nguyên loại thẻ hiện tại.
+    const loaiThe: LoaiThe = command.loaiThe ?? theHienTai.loaiThe;
+    let matTruoc = "";
+    let matSau: string | NoiDungTracNghiem = "";
+    const loi: string[] = [];
+
+    if (loaiThe === "TRAC_NGHIEM") {
+      const ketQua = kiemTraNoiDungTracNghiem(command.tracNghiem ?? {});
+      loi.push(...ketQua.loi);
+      matTruoc = ketQua.noiDung.cauHoi;
+      matSau = ketQua.noiDung;
+    } else {
+      const ketQua = kiemTraNoiDungTheFlashcard(command);
+      loi.push(...ketQua.loi);
+      matTruoc = ketQua.matTruoc;
+      matSau = ketQua.matSau;
+    }
+
+    if (loi.length > 0) {
+      await this.deps.dichVuGhiLogLoiFlashcard.ghiCanhBao({
+        actorId: command.actorId,
+        action: "FLASHCARD_CARD_UPDATE_VALIDATION_FAILED",
+        tableName: "flashcard",
+        recordId: command.maFlashcard,
+        message: "Cập nhật thẻ thất bại - Dữ liệu trống",
+        metadata: { errors: loi }
+      });
+      throw LoiUngDung.yeuCauSai("Nội dung thẻ không được để trống!", loi);
+    }
+
     try {
       const flashcard = await this.deps.giaoDich.thucThiTrongGiaoDich(async (tx) => {
-        const the = await this.deps.khoFlashcard.capNhatThe({ maFlashcard: command.maFlashcard, matTruoc, matSau }, tx);
+        const the = await this.deps.khoFlashcard.capNhatThe(
+          { maFlashcard: command.maFlashcard, loaiThe, matTruoc, matSau },
+          tx
+        );
 
         if (!the) {
           throw LoiUngDung.khongTimThay("Không tìm thấy thẻ flashcard cần cập nhật");

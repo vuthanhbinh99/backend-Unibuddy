@@ -8,6 +8,7 @@ import { laUuidHopLe } from "../services/flashcard-validation.service.js";
 export type LenhBatDauOnTapFlashcard = {
   actorId: string;
   maBo: string;
+  hocLaiTatCa?: boolean;
 };
 
 type PhuThuoc = {
@@ -46,7 +47,11 @@ export class XuLyBatDauOnTapFlashcard {
     }
 
     try {
-      const items = await this.deps.khoFlashcard.lietKeTheCanOn(command.maBo, command.actorId);
+      const items = await this.deps.khoFlashcard.lietKeTheCanOn(
+        command.maBo,
+        command.actorId,
+        command.hocLaiTatCa ?? false
+      );
 
       await this.deps.khoNhatKyHeThong.tao({
         actorId: command.actorId,

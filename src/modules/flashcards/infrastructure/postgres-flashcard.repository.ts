@@ -10,10 +10,12 @@ import type {
   DuLieuCapNhatTienDoFlashcard,
   DuLieuTaoBoFlashcard,
   DuLieuTaoTheFlashcard,
+  LoaiThe,
   MonHocFlashcard,
   TheFlashcard,
   ThongKeFlashcard
 } from "../domain/flashcard.js";
+import { chuanHoaMatSauDeGhi, docMatSauTuJsonb, laLoaiTheHopLe } from "../domain/flashcard.js";
 
 type DongBoFlashcard = {
   maBo: string;
@@ -32,8 +34,9 @@ type DongTheFlashcard = {
   maFlashcard: string;
   maBo: string;
   maNguoiDung: string;
+  loaiThe: string | null;
   matTruoc: string;
-  matSau: string;
+  matSau: unknown;
   soLanOn: number;
   diemGhiNho: number;
   thoiGianLanOnCuoi: Date | null;
@@ -71,19 +74,24 @@ const anhXaBo = (row: DongBoFlashcard): BoFlashcard => ({
   updatedAt: row.updatedAt
 });
 
-const anhXaThe = (row: DongTheFlashcard): TheFlashcard => ({
-  maFlashcard: row.maFlashcard,
-  maBo: row.maBo,
-  maNguoiDung: row.maNguoiDung,
-  matTruoc: row.matTruoc,
-  matSau: row.matSau,
-  soLanOn: Number(row.soLanOn),
-  diemGhiNho: Number(row.diemGhiNho),
-  thoiGianLanOnCuoi: row.thoiGianLanOnCuoi,
-  thoiGianLanOnTiepTheo: row.thoiGianLanOnTiepTheo,
-  createdAt: row.createdAt,
-  updatedAt: row.updatedAt
-});
+const anhXaThe = (row: DongTheFlashcard): TheFlashcard => {
+  const loaiThe: LoaiThe = laLoaiTheHopLe(row.loaiThe) ? row.loaiThe : "TU_LUAN";
+
+  return {
+    maFlashcard: row.maFlashcard,
+    maBo: row.maBo,
+    maNguoiDung: row.maNguoiDung,
+    loaiThe,
+    matTruoc: row.matTruoc,
+    matSau: docMatSauTuJsonb(loaiThe, row.matSau),
+    soLanOn: Number(row.soLanOn),
+    diemGhiNho: Number(row.diemGhiNho),
+    thoiGianLanOnCuoi: row.thoiGianLanOnCuoi,
+    thoiGianLanOnTiepTheo: row.thoiGianLanOnTiepTheo,
+    createdAt: row.createdAt,
+    updatedAt: row.updatedAt
+  };
+};
 
 const anhXaMonHoc = (row: DongMonHocFlashcard): MonHocFlashcard => ({
   maMonHoc: row.maMonHoc,
@@ -92,6 +100,12 @@ const anhXaMonHoc = (row: DongMonHocFlashcard): MonHocFlashcard => ({
   maMon: row.maMon,
   tenMon: row.tenMon
 });
+
+const chuanHoaLoaiThe = (loaiThe?: LoaiThe): LoaiThe =>
+  laLoaiTheHopLe(loaiThe) ? loaiThe : "TU_LUAN";
+
+const chuanBiMatSauJson = (data: { loaiThe?: LoaiThe; matSau: DuLieuTaoTheFlashcard["matSau"] }): string =>
+  JSON.stringify(chuanHoaMatSauDeGhi(data.matSau));
 
 const cauTruyVanBoCoSo = `
   SELECT
@@ -130,6 +144,7 @@ const cauTruyVanTheCoSo = `
     fc.ma_flashcard AS "maFlashcard",
     fc.ma_bo AS "maBo",
     bf.ma_nguoi_dung AS "maNguoiDung",
+    fc.loai_the AS "loaiThe",
     fc.mat_truoc AS "matTruoc",
     fc.mat_sau AS "matSau",
     fc.so_lan_on AS "soLanOn",
@@ -273,6 +288,7 @@ export class KhoFlashcardPostgres implements KhoFlashcard {
         WITH inserted AS (
           INSERT INTO flashcard (
             ma_bo,
+            loai_the,
             mat_truoc,
             mat_sau,
             so_lan_on,
@@ -282,12 +298,12 @@ export class KhoFlashcardPostgres implements KhoFlashcard {
             thoi_gian_tao,
             thoi_gian_cap_nhat
           )
-          VALUES ($1, $2, $3, 0, 2.50, NULL, NOW(), NOW(), NOW())
+          VALUES ($1, $2, $3, $4::jsonb, 0, 2.50, NULL, NOW(), NOW(), NOW())
           RETURNING *
         )
         ${cauTruyVanTheCoSo.replace("FROM flashcard fc", "FROM inserted fc")}
       `,
-      [data.maBo, data.matTruoc, data.matSau]
+      [data.maBo, chuanHoaLoaiThe(data.loaiThe), data.matTruoc, chuanBiMatSauJson(data)]
     );
 
     const the = ketQua.rows[0];
@@ -310,6 +326,7 @@ export class KhoFlashcardPostgres implements KhoFlashcard {
         WITH inserted AS (
           INSERT INTO flashcard (
             ma_bo,
+            loai_the,
             mat_truoc,
             mat_sau,
             so_lan_on,
@@ -321,6 +338,7 @@ export class KhoFlashcardPostgres implements KhoFlashcard {
           )
           SELECT
             $1,
+            du_lieu.loai_the,
             du_lieu.mat_truoc,
             du_lieu.mat_sau,
             0,
@@ -329,13 +347,18 @@ export class KhoFlashcardPostgres implements KhoFlashcard {
             NOW(),
             NOW(),
             NOW()
-          FROM unnest($2::text[], $3::text[]) AS du_lieu(mat_truoc, mat_sau)
+          FROM unnest($2::text[], $3::text[], $4::jsonb[]) AS du_lieu(loai_the, mat_truoc, mat_sau)
           RETURNING *
         )
         ${cauTruyVanTheCoSo.replace("FROM flashcard fc", "FROM inserted fc")}
         ORDER BY fc.thoi_gian_tao ASC
       `,
-      [maBo, data.map((item) => item.matTruoc), data.map((item) => item.matSau)]
+      [
+        maBo,
+        data.map((item) => chuanHoaLoaiThe(item.loaiThe)),
+        data.map((item) => item.matTruoc),
+        data.map((item) => chuanBiMatSauJson(item))
+      ]
     );
 
     return ketQua.rows.map(anhXaThe);
@@ -364,15 +387,16 @@ export class KhoFlashcardPostgres implements KhoFlashcard {
       `
         WITH updated AS (
           UPDATE flashcard
-          SET mat_truoc = $2,
-              mat_sau = $3,
+          SET loai_the = $2,
+              mat_truoc = $3,
+              mat_sau = $4::jsonb,
               thoi_gian_cap_nhat = NOW()
           WHERE ma_flashcard = $1
           RETURNING *
         )
         ${cauTruyVanTheCoSo.replace("FROM flashcard fc", "FROM updated fc")}
       `,
-      [data.maFlashcard, data.matTruoc, data.matSau]
+      [data.maFlashcard, chuanHoaLoaiThe(data.loaiThe), data.matTruoc, chuanBiMatSauJson(data)]
     );
 
     return ketQua.rows[0] ? anhXaThe(ketQua.rows[0]) : null;
@@ -384,13 +408,21 @@ export class KhoFlashcardPostgres implements KhoFlashcard {
     return (ketQua.rowCount ?? 0) > 0;
   }
 
-  async lietKeTheCanOn(maBo: string, maNguoiDung: string, boThucThi: BoThucThiTruyVan = this.coSoDuLieu) {
+  async lietKeTheCanOn(
+    maBo: string,
+    maNguoiDung: string,
+    hocLaiTatCa = false,
+    boThucThi: BoThucThiTruyVan = this.coSoDuLieu
+  ) {
+    const dieuKienDenHan = hocLaiTatCa
+      ? ""
+      : "AND (fc.thoi_gian_lan_on_tiep_theo IS NULL OR fc.thoi_gian_lan_on_tiep_theo <= NOW())";
     const ketQua = await boThucThi.truyVan<DongTheFlashcard>(
       `
         ${cauTruyVanTheCoSo}
         WHERE fc.ma_bo = $1
           AND bf.ma_nguoi_dung = $2
-          AND (fc.thoi_gian_lan_on_tiep_theo IS NULL OR fc.thoi_gian_lan_on_tiep_theo <= NOW())
+          ${dieuKienDenHan}
         ORDER BY fc.thoi_gian_lan_on_tiep_theo ASC NULLS FIRST, fc.thoi_gian_tao ASC
       `,
       [maBo, maNguoiDung]

@@ -2,16 +2,18 @@ import type { KhoNhatKyHeThong } from "../../../audit-logs/application/ports/aud
 import type { BoQuanLyGiaoDich } from "../../../../shared/database/transaction.js";
 import { LoiUngDung } from "../../../../shared/errors/app-error.js";
 import { CacLoi } from "../../../../shared/errors/error-codes.js";
-import type { MucDoGhiNhoFlashcard } from "../../domain/flashcard.js";
+import type { KetQuaOnTapFlashcard, MucDoGhiNhoFlashcard } from "../../domain/flashcard.js";
 import type { KhoFlashcard } from "../ports/flashcard.repository.js";
 import type { DichVuGhiLogLoiFlashcard } from "../services/flashcard-error-logger.service.js";
-import { laMucDoGhiNhoFlashcard, laUuidHopLe } from "../services/flashcard-validation.service.js";
-import { tinhTienDoSm2 } from "../services/sm2.service.js";
+import { laKetQuaOnTapFlashcard, laMucDoGhiNhoFlashcard, laUuidHopLe } from "../services/flashcard-validation.service.js";
+import { tinhTienDoSm2, tinhTienDoTheoClick } from "../services/sm2.service.js";
 
 export type LenhCapNhatTienDoFlashcard = {
   actorId: string;
   maFlashcard: string;
   mucDo?: string | null;
+  ketQua?: string | null;
+  thoiGianPhanHoiMs?: number | null;
 };
 
 type PhuThuoc = {
@@ -25,14 +27,20 @@ export class XuLyCapNhatTienDoFlashcard {
   constructor(private readonly deps: PhuThuoc) {}
 
   async thucThi(command: LenhCapNhatTienDoFlashcard) {
+    const ketQua = command.ketQua?.trim().toUpperCase() ?? "";
     const mucDo = command.mucDo?.trim().toUpperCase() ?? "";
+    const dungCheDoClick = ketQua.length > 0;
     const loi: string[] = [];
 
     if (!laUuidHopLe(command.maFlashcard)) {
       loi.push("Mã thẻ flashcard không hợp lệ");
     }
 
-    if (!laMucDoGhiNhoFlashcard(mucDo)) {
+    if (dungCheDoClick) {
+      if (!laKetQuaOnTapFlashcard(ketQua)) {
+        loi.push("Kết quả ôn tập không hợp lệ");
+      }
+    } else if (!laMucDoGhiNhoFlashcard(mucDo)) {
       loi.push("Mức độ ghi nhớ không hợp lệ");
     }
 
@@ -43,9 +51,9 @@ export class XuLyCapNhatTienDoFlashcard {
         tableName: "flashcard",
         recordId: command.maFlashcard,
         message: "Cập nhật tiến độ ôn tập thẻ thất bại do dữ liệu đầu vào không hợp lệ",
-        metadata: { errors: loi, mucDo: command.mucDo }
+        metadata: { errors: loi, mucDo: command.mucDo, ketQua: command.ketQua }
       });
-      throw LoiUngDung.yeuCauSai("Mức độ ghi nhớ không hợp lệ", loi);
+      throw LoiUngDung.yeuCauSai("Dữ liệu ôn tập không hợp lệ", loi);
     }
 
     const theHienTai = await this.deps.khoFlashcard.timTheCuaSinhVien(command.maFlashcard, command.actorId);
@@ -62,7 +70,10 @@ export class XuLyCapNhatTienDoFlashcard {
       throw LoiUngDung.khongCoQuyen("Bạn không có quyền ôn tập thẻ này!");
     }
 
-    const tienDo = tinhTienDoSm2(theHienTai, mucDo as MucDoGhiNhoFlashcard);
+    const thoiGianPhanHoiMs = Math.max(0, Math.round(command.thoiGianPhanHoiMs ?? 0));
+    const tienDo = dungCheDoClick
+      ? tinhTienDoTheoClick(theHienTai, ketQua as KetQuaOnTapFlashcard, thoiGianPhanHoiMs)
+      : { ...tinhTienDoSm2(theHienTai, mucDo as MucDoGhiNhoFlashcard), mucDo: mucDo as MucDoGhiNhoFlashcard };
 
     try {
       const flashcard = await this.deps.giaoDich.thucThiTrongGiaoDich(async (tx) => {
@@ -92,7 +103,9 @@ export class XuLyCapNhatTienDoFlashcard {
             metadata: {
               maBo: the.maBo,
               maFlashcard: the.maFlashcard,
-              mucDo,
+              mucDo: tienDo.mucDo,
+              ketQua: dungCheDoClick ? ketQua : null,
+              thoiGianPhanHoiMs: dungCheDoClick ? thoiGianPhanHoiMs : null,
               sm2Quality: tienDo.q,
               soLanOnCu: theHienTai.soLanOn,
               soLanOnMoi: tienDo.soLanOn,
@@ -112,7 +125,8 @@ export class XuLyCapNhatTienDoFlashcard {
         message: "Cập nhật tiến độ ôn tập thành công",
         flashcard,
         sm2: {
-          mucDo,
+          mucDo: tienDo.mucDo,
+          ketQua: dungCheDoClick ? (ketQua as KetQuaOnTapFlashcard) : null,
           q: tienDo.q,
           khoangCachNgay: tienDo.khoangCachNgay,
           thoiGianOnTiepTheo: tienDo.thoiGianLanOnTiepTheo
@@ -132,7 +146,8 @@ export class XuLyCapNhatTienDoFlashcard {
         error,
         metadata: {
           maFlashcard: command.maFlashcard,
-          mucDo
+          mucDo,
+          ketQua
         }
       });
       throw new LoiUngDung(500, CacLoi.INTERNAL_ERROR, "Hệ thống bận, không thể cập nhật tiến độ ôn tập lúc này");

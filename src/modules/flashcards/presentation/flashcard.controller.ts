@@ -4,7 +4,11 @@ import type { BoPhuThuocUngDung } from "../../../container.js";
 import { LoiUngDung } from "../../../shared/errors/app-error.js";
 import { daTao, thanhCong } from "../../../shared/http/api-response.js";
 import { xuLyBatDongBo } from "../../../shared/http/async-handler.js";
-import { CAC_MUC_DO_GHI_NHO_FLASHCARD } from "../domain/flashcard.js";
+import {
+  CAC_KET_QUA_ON_TAP_FLASHCARD,
+  CAC_LOAI_THE_FLASHCARD,
+  CAC_MUC_DO_GHI_NHO_FLASHCARD
+} from "../domain/flashcard.js";
 
 const maTaiNguyen = z.string().trim().min(1);
 
@@ -39,12 +43,38 @@ export const luocDoXoaBoFlashcard = z.object({
   query: z.object({})
 });
 
+const luocDoNoiDungTracNghiem = z.object({
+  cauHoi: z.string().trim().optional().nullable(),
+  cacLuaChon: z
+    .array(
+      z.object({
+        id: z.string().trim().optional().nullable(),
+        noiDung: z.string().trim().optional().nullable()
+      })
+    )
+    .optional()
+    .nullable(),
+  dapAnDung: z.string().trim().optional().nullable(),
+  giaiThich: z.string().trim().optional().nullable()
+});
+
 export const luocDoTaoTheFlashcard = z.object({
   body: z.object({
+    loaiThe: z.enum(CAC_LOAI_THE_FLASHCARD).optional().nullable(),
     matTruoc: z.string().trim().optional().nullable(),
     matSau: z.string().trim().optional().nullable(),
     cauHoi: z.string().trim().optional().nullable(),
-    cauTraLoi: z.string().trim().optional().nullable()
+    cauTraLoi: z.string().trim().optional().nullable(),
+    tracNghiem: luocDoNoiDungTracNghiem.optional().nullable()
+  }),
+  params: z.object({ maBo: maTaiNguyen }),
+  query: z.object({})
+});
+
+export const luocDoTaoTheFlashcardBangAi = z.object({
+  body: z.object({
+    sourceText: z.string().trim().min(30).max(12000),
+    desiredCount: z.coerce.number().int().min(3).max(30).optional().nullable()
   }),
   params: z.object({ maBo: maTaiNguyen }),
   query: z.object({})
@@ -52,10 +82,12 @@ export const luocDoTaoTheFlashcard = z.object({
 
 export const luocDoCapNhatTheFlashcard = z.object({
   body: z.object({
+    loaiThe: z.enum(CAC_LOAI_THE_FLASHCARD).optional().nullable(),
     matTruoc: z.string().trim().optional().nullable(),
     matSau: z.string().trim().optional().nullable(),
     cauHoi: z.string().trim().optional().nullable(),
-    cauTraLoi: z.string().trim().optional().nullable()
+    cauTraLoi: z.string().trim().optional().nullable(),
+    tracNghiem: luocDoNoiDungTracNghiem.optional().nullable()
   }),
   params: z.object({ maFlashcard: maTaiNguyen }),
   query: z.object({})
@@ -70,12 +102,19 @@ export const luocDoXoaTheFlashcard = z.object({
 export const luocDoBatDauOnTapFlashcard = z.object({
   body: z.object({}),
   params: z.object({ maBo: maTaiNguyen }),
-  query: z.object({})
+  query: z.object({
+    hocLai: z
+      .enum(["true", "false", "1", "0"])
+      .optional()
+      .nullable()
+  })
 });
 
 export const luocDoCapNhatTienDoFlashcard = z.object({
   body: z.object({
-    mucDo: z.enum(CAC_MUC_DO_GHI_NHO_FLASHCARD).or(z.string().trim()).optional().nullable()
+    mucDo: z.enum(CAC_MUC_DO_GHI_NHO_FLASHCARD).or(z.string().trim()).optional().nullable(),
+    ketQua: z.enum(CAC_KET_QUA_ON_TAP_FLASHCARD).or(z.string().trim()).optional().nullable(),
+    thoiGianPhanHoiMs: z.coerce.number().int().min(0).max(3600000).optional().nullable()
   }),
   params: z.object({ maFlashcard: maTaiNguyen }),
   query: z.object({})
@@ -84,6 +123,15 @@ export const luocDoCapNhatTienDoFlashcard = z.object({
 export const luocDoThongKeFlashcard = z.object({
   body: z.object({}),
   params: z.object({}),
+  query: z.object({})
+});
+
+export const luocDoGhiKetQuaPhienFlashcard = z.object({
+  body: z.object({
+    soCauDung: z.coerce.number().int().min(0).max(10000),
+    soCauSai: z.coerce.number().int().min(0).max(10000)
+  }),
+  params: z.object({ maBo: maTaiNguyen }),
   query: z.object({})
 });
 
@@ -104,8 +152,23 @@ type DuLieuCoMaBo = {
   params: { maBo: string };
 };
 
+type DuLieuBatDauOnTap = {
+  params: { maBo: string };
+  query: z.infer<typeof luocDoBatDauOnTapFlashcard>["query"];
+};
+
+type DuLieuGhiKetQuaPhien = {
+  body: z.infer<typeof luocDoGhiKetQuaPhienFlashcard>["body"];
+  params: { maBo: string };
+};
+
 type DuLieuTaoThe = {
   body: z.infer<typeof luocDoTaoTheFlashcard>["body"];
+  params: { maBo: string };
+};
+
+type DuLieuTaoTheBangAi = {
+  body: z.infer<typeof luocDoTaoTheFlashcardBangAi>["body"];
   params: { maBo: string };
 };
 
@@ -177,8 +240,10 @@ export class BoDieuKhienFlashcard {
     const ketQua = await this.boPhuThuoc.xuLyTaoTheFlashcard.thucThi({
       actorId,
       maBo: params.maBo,
+      loaiThe: body.loaiThe ?? undefined,
       matTruoc: layMatTruoc(body),
-      matSau: layMatSau(body)
+      matSau: layMatSau(body),
+      tracNghiem: body.tracNghiem ?? undefined
     });
 
     res.status(201).json(daTao(ketQua));
@@ -201,10 +266,87 @@ export class BoDieuKhienFlashcard {
     res.status(201).json(daTao(ketQua));
   });
 
+  taoTheBangAi = xuLyBatDongBo(async (req: Request, res: Response) => {
+    const actorId = this.layActorId(req);
+    const { body, params } = req.duLieuDaXacThuc as DuLieuTaoTheBangAi;
+    const ketQua = await this.boPhuThuoc.xuLyTaoFlashcardBangAi.thucThi({
+      actorId,
+      maBo: params.maBo,
+      sourceText: body.sourceText,
+      desiredCount: body.desiredCount
+    });
+
+    res.status(201).json(daTao(ketQua));
+  });
+
+  aiImportThe = xuLyBatDongBo(async (req: Request, res: Response) => {
+    const actorId = this.layActorId(req);
+    const desiredCountRaw = req.body?.desiredCount;
+    const desiredCount =
+      desiredCountRaw === undefined || desiredCountRaw === null || desiredCountRaw === ""
+        ? null
+        : Number(desiredCountRaw);
+    const ketQua = await this.boPhuThuoc.xuLyTaoFlashcardTuFile.thucThi({
+      actorId,
+      maBo: req.params.maBo,
+      desiredCount: Number.isFinite(desiredCount) ? desiredCount : null,
+      file: req.file
+        ? {
+            tenFile: req.file.originalname,
+            mimeType: req.file.mimetype,
+            buffer: req.file.buffer
+          }
+        : null
+    });
+
+    res.status(201).json(daTao(ketQua));
+  });
+
+  aiImportTheTuLuan = xuLyBatDongBo(async (req: Request, res: Response) => {
+    const actorId = this.layActorId(req);
+    const desiredCountRaw = req.body?.desiredCount;
+    const desiredCount =
+      desiredCountRaw === undefined || desiredCountRaw === null || desiredCountRaw === ""
+        ? null
+        : Number(desiredCountRaw);
+    const ketQua = await this.boPhuThuoc.xuLyTaoFlashcardTuLuanTuFile.thucThi({
+      actorId,
+      maBo: req.params.maBo,
+      desiredCount: Number.isFinite(desiredCount) ? desiredCount : null,
+      file: req.file
+        ? {
+            tenFile: req.file.originalname,
+            mimeType: req.file.mimetype,
+            buffer: req.file.buffer
+          }
+        : null
+    });
+
+    res.status(201).json(daTao(ketQua));
+  });
+
   batDauOnTap = xuLyBatDongBo(async (req: Request, res: Response) => {
     const actorId = this.layActorId(req);
-    const { maBo } = (req.duLieuDaXacThuc as DuLieuCoMaBo).params;
-    const ketQua = await this.boPhuThuoc.xuLyBatDauOnTapFlashcard.thucThi({ actorId, maBo });
+    const { params, query } = req.duLieuDaXacThuc as DuLieuBatDauOnTap;
+    const hocLaiTatCa = query.hocLai === "true" || query.hocLai === "1";
+    const ketQua = await this.boPhuThuoc.xuLyBatDauOnTapFlashcard.thucThi({
+      actorId,
+      maBo: params.maBo,
+      hocLaiTatCa
+    });
+
+    res.status(200).json(thanhCong(ketQua));
+  });
+
+  ghiKetQuaPhien = xuLyBatDongBo(async (req: Request, res: Response) => {
+    const actorId = this.layActorId(req);
+    const { body, params } = req.duLieuDaXacThuc as DuLieuGhiKetQuaPhien;
+    const ketQua = await this.boPhuThuoc.xuLyGhiKetQuaPhienFlashcard.thucThi({
+      actorId,
+      maBo: params.maBo,
+      soCauDung: body.soCauDung,
+      soCauSai: body.soCauSai
+    });
 
     res.status(200).json(thanhCong(ketQua));
   });
@@ -215,8 +357,10 @@ export class BoDieuKhienFlashcard {
     const ketQua = await this.boPhuThuoc.xuLyCapNhatTheFlashcard.thucThi({
       actorId,
       maFlashcard: params.maFlashcard,
+      loaiThe: body.loaiThe ?? undefined,
       matTruoc: layMatTruoc(body),
-      matSau: layMatSau(body)
+      matSau: layMatSau(body),
+      tracNghiem: body.tracNghiem ?? undefined
     });
 
     res.status(200).json(thanhCong(ketQua));
@@ -236,7 +380,9 @@ export class BoDieuKhienFlashcard {
     const ketQua = await this.boPhuThuoc.xuLyCapNhatTienDoFlashcard.thucThi({
       actorId,
       maFlashcard: params.maFlashcard,
-      mucDo: body.mucDo
+      mucDo: body.mucDo,
+      ketQua: body.ketQua,
+      thoiGianPhanHoiMs: body.thoiGianPhanHoiMs
     });
 
     res.status(200).json(thanhCong(ketQua));
