@@ -78,8 +78,6 @@ export class XuLyTaoNhomHocTap {
           tx
         );
 
-        await this.deps.khoNhomHocTap.themThanhVien(nhomMoi.maNhom, command.actorId, "TRUONG_NHOM", tx);
-
         await this.deps.khoNhatKyHeThong.tao(
           {
             actorId: command.actorId,
