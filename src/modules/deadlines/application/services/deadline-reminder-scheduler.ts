@@ -19,8 +19,8 @@ export const batDauQuetNhacNhoDeadline = (
       return;
     }
     void dichVuQuet.quetMotLuot().catch((error) => {
-      nhatKy.error("Loi ngoai y muon trong vong lap quet nhac nho deadline", {
-        errorName: error instanceof Error ? error.name : "UnknownError"
+      nhatKy.error("Lỗi ngoài ý muốn trong vòng lặp nhắc nhở deadline", {
+        errorName: error instanceof Error ? error.name : "UnknownError",
       });
     });
   };

@@ -37,7 +37,7 @@ export class DichVuGhiLogLoiDeadline {
         }
       });
     } catch (auditError) {
-      nhatKy.error("Khong the ghi audit loi module deadline", {
+      nhatKy.error("Không thể ghi lỗi audit module deadline", {
         error: auditError,
         originalErrorName: layTenLoi(input.error)
       });
@@ -56,7 +56,7 @@ export class DichVuGhiLogLoiDeadline {
         metadata: input.metadata
       });
     } catch (auditError) {
-      nhatKy.error("Khong the ghi audit canh bao module deadline", {
+      nhatKy.error("Không thể ghi cảnh báo audit module deadline", {
         error: auditError,
         action: input.action
       });
