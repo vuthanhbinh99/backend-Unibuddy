@@ -1,4 +1,5 @@
 import { BoMaHoaMatKhauBcrypt } from "./modules/auth/infrastructure/bcrypt-password-hasher.js";
+import { BoKiemTraDoMatKhauTheoQuyTac } from "./modules/auth/infrastructure/rule-based-password-checker.js";
 import { BoKiemTraDanhTinhGoogleQuaAPI } from "./modules/auth/infrastructure/google-token-info.verifier.js";
 import { DichVuTokenJwt } from "./modules/auth/infrastructure/jwt-token.service.js";
 import { KhoPhienDangNhapPostgres } from "./modules/auth/infrastructure/postgres-session.repository.js";
@@ -36,13 +37,18 @@ import { XuLyLayCauHinhHocThuatTruongHoc } from "./modules/academic-rules/applic
 import { XuLyCapNhatThangDiemTruongHoc } from "./modules/academic-rules/application/use-cases/update-score-scale.use-case.js";
 import { XuLyCapNhatQuyCheHocLucTruongHoc } from "./modules/academic-rules/application/use-cases/update-academic-standing.use-case.js";
 import { DichVuGhiLogLoiDeadline } from "./modules/deadlines/application/services/deadline-error-logger.service.js";
+import { DichVuQuetNhacNhoDeadline } from "./modules/deadlines/application/services/deadline-reminder-scanner.service.js";
 import { XuLyTaoDeadline } from "./modules/deadlines/application/use-cases/create-deadline.use-case.js";
 import { XuLyXoaDeadline } from "./modules/deadlines/application/use-cases/delete-deadline.use-case.js";
 import { XuLyDanhSachDeadline } from "./modules/deadlines/application/use-cases/list-deadlines.use-case.js";
 import { XuLyCapNhatTrangThaiDeadline } from "./modules/deadlines/application/use-cases/update-deadline-status.use-case.js";
+import { XuLyLayTuyChinhNhacNho } from "./modules/deadlines/application/use-cases/get-reminder-preference.use-case.js";
+import { XuLyCapNhatTuyChinhNhacNho } from "./modules/deadlines/application/use-cases/update-reminder-preference.use-case.js";
 import { KhoDeadlinePostgres } from "./modules/deadlines/infrastructure/postgres-deadline.repository.js";
+import { KhoTuyChinhNhacNhoPostgres } from "./modules/deadlines/infrastructure/postgres-reminder-preference.repository.js";
 import { XuLyUploadChiaSeTaiLieu } from "./modules/documents/application/use-cases/upload-shared-document.use-case.js";
 import { XuLyDanhSachTaiLieuSinhVien } from "./modules/documents/application/use-cases/list-student-documents.use-case.js";
+import { XuLyTomTatTaiLieuBangAi } from "./modules/documents/application/use-cases/summarize-document-content-with-ai.use-case.js";
 import { XuLyXoaTaiLieuSinhVien } from "./modules/documents/application/use-cases/delete-student-document.use-case.js";
 import { KhoTaiLieuPostgres } from "./modules/documents/infrastructure/postgres-document.repository.js";
 import { XuLyCauHinhTrongSoDiem } from "./modules/grades/application/use-cases/configure-grade-weights.use-case.js";
@@ -52,6 +58,7 @@ import { XuLyTrichXuatHeaderImportDiemSo } from "./modules/grades/application/us
 import { XuLyXemBangDiem } from "./modules/grades/application/use-cases/list-grade-transcript.use-case.js";
 import { XuLyPreviewImportDiemSo } from "./modules/grades/application/use-cases/preview-grade-import.use-case.js";
 import { XuLyDuPhongGpa } from "./modules/grades/application/use-cases/project-gpa.use-case.js";
+import { XuLyLayGoiYHocTapBangAi } from "./modules/grades/application/use-cases/get-ai-grade-advice.use-case.js";
 import { XuLyCapNhatThanhPhanDiem } from "./modules/grades/application/use-cases/update-grade-component.use-case.js";
 import { DichVuGhiLogLoiDiemSo } from "./modules/grades/application/services/grade-error-logger.service.js";
 import { DichVuMappingImportDiemSo } from "./modules/grades/application/services/grade-import-mapper.service.js";
@@ -61,9 +68,11 @@ import { DichVuGhiLogLoiHocPhan } from "./modules/courses/application/services/c
 import { XuLyTaoHocPhan } from "./modules/courses/application/use-cases/create-course.use-case.js";
 import { XuLyTaoHocKy } from "./modules/courses/application/use-cases/create-semester.use-case.js";
 import { XuLyXoaHocPhan } from "./modules/courses/application/use-cases/delete-course.use-case.js";
+import { XuLyXoaHocKy } from "./modules/courses/application/use-cases/delete-semester.use-case.js";
 import { XuLyChiTietHocPhan } from "./modules/courses/application/use-cases/get-course-detail.use-case.js";
 import { XuLyDanhSachHocPhan } from "./modules/courses/application/use-cases/list-courses.use-case.js";
 import { XuLyCapNhatHocPhan } from "./modules/courses/application/use-cases/update-course.use-case.js";
+import { XuLyCapNhatHocKy } from "./modules/courses/application/use-cases/update-semester.use-case.js";
 import { KhoHocPhanPostgres } from "./modules/courses/infrastructure/postgres-course.repository.js";
 import { DichVuQuyenGhiChu } from "./modules/notes/application/services/note-access.service.js";
 import { DichVuTepDinhKemGhiChu } from "./modules/notes/application/services/note-attachment.service.js";
@@ -83,9 +92,21 @@ import { XuLyXoaLichHoc } from "./modules/schedules/application/use-cases/delete
 import { XuLyTrichXuatHeaderImportThoiKhoaBieu } from "./modules/schedules/application/use-cases/extract-schedule-import-headers.use-case.js";
 import { XuLyDanhSachLichHoc } from "./modules/schedules/application/use-cases/list-schedules.use-case.js";
 import { XuLyPreviewImportThoiKhoaBieu } from "./modules/schedules/application/use-cases/preview-schedule-import.use-case.js";
+import { XuLyGoiYMappingImportLichHocBangAi } from "./modules/schedules/application/use-cases/suggest-schedule-import-mapping-with-ai.use-case.js";
 import { XuLyCapNhatLichHoc } from "./modules/schedules/application/use-cases/update-schedule.use-case.js";
 import { KhoLichHocPostgres } from "./modules/schedules/infrastructure/postgres-schedule.repository.js";
 import { BoDocTepImportThoiKhoaBieuXlsxPdf } from "./modules/schedules/infrastructure/xlsx-pdf-schedule-import-parser.js";
+import { DichVuMappingImportLichThi } from "./modules/exams/application/services/exam-import-mapper.service.js";
+import { XuLyXacNhanImportLichThi } from "./modules/exams/application/use-cases/confirm-exam-import.use-case.js";
+import { XuLyTaoLichThi } from "./modules/exams/application/use-cases/create-exam.use-case.js";
+import { XuLyXoaLichThi } from "./modules/exams/application/use-cases/delete-exam.use-case.js";
+import { XuLyTrichXuatHeaderImportLichThi } from "./modules/exams/application/use-cases/extract-exam-import-headers.use-case.js";
+import { XuLyDanhSachLichThi } from "./modules/exams/application/use-cases/list-exams.use-case.js";
+import { XuLyPreviewImportLichThi } from "./modules/exams/application/use-cases/preview-exam-import.use-case.js";
+import { XuLyGoiYMappingImportLichThiBangAi } from "./modules/exams/application/use-cases/suggest-exam-import-mapping-with-ai.use-case.js";
+import { XuLyCapNhatLichThi } from "./modules/exams/application/use-cases/update-exam.use-case.js";
+import { KhoLichThiPostgres } from "./modules/exams/infrastructure/postgres-exam.repository.js";
+import { BoDocTepImportLichThiXlsxPdf } from "./modules/exams/infrastructure/xlsx-pdf-exam-import-parser.js";
 import { DichVuGhiLogLoiNhomHocTap } from "./modules/study-groups/application/services/study-group-error-logger.service.js";
 import { XuLyTaoNhomHocTap } from "./modules/study-groups/application/use-cases/create-study-group.use-case.js";
 import { XuLyXoaNhomHocTap } from "./modules/study-groups/application/use-cases/delete-study-group.use-case.js";
@@ -111,33 +132,51 @@ import { XuLyXoaBoFlashcard } from "./modules/flashcards/application/use-cases/d
 import { XuLyXoaTheFlashcard } from "./modules/flashcards/application/use-cases/delete-flashcard.use-case.js";
 import { XuLyThongKeFlashcard } from "./modules/flashcards/application/use-cases/get-flashcard-statistics.use-case.js";
 import { XuLyImportFlashcards } from "./modules/flashcards/application/use-cases/import-flashcards.use-case.js";
+import { XuLyTaoFlashcardBangAi } from "./modules/flashcards/application/use-cases/generate-flashcards-with-ai.use-case.js";
+import { XuLyTaoFlashcardTuFile } from "./modules/flashcards/application/use-cases/generate-flashcards-from-file.use-case.js";
+import { XuLyTaoFlashcardTuLuanTuFile } from "./modules/flashcards/application/use-cases/generate-essay-flashcards-from-file.use-case.js";
 import { XuLyDanhSachBoFlashcard } from "./modules/flashcards/application/use-cases/list-flashcard-decks.use-case.js";
 import { XuLyBatDauOnTapFlashcard } from "./modules/flashcards/application/use-cases/start-flashcard-review.use-case.js";
+import { XuLyGhiKetQuaPhienFlashcard } from "./modules/flashcards/application/use-cases/record-flashcard-session-result.use-case.js";
 import { XuLyCapNhatBoFlashcard } from "./modules/flashcards/application/use-cases/update-flashcard-deck.use-case.js";
 import { XuLyCapNhatTheFlashcard } from "./modules/flashcards/application/use-cases/update-flashcard.use-case.js";
 import { XuLyCapNhatTienDoFlashcard } from "./modules/flashcards/application/use-cases/update-flashcard-progress.use-case.js";
 import { KhoFlashcardPostgres } from "./modules/flashcards/infrastructure/postgres-flashcard.repository.js";
 import { BoDocTepImportFlashcardXlsxCsv } from "./modules/flashcards/infrastructure/xlsx-csv-flashcard-import-parser.js";
+import { BoTrichXuatVanBanTaiLieuMacDinh } from "./modules/flashcards/infrastructure/document-text-extractor.js";
 import { KhoBaoCaoTaiLieuPostgres } from "./modules/report-document/infranstructure/postgres-report-document.repository.js";
 import { XuLyDanhSachBaoCaoTaiLieu } from "./modules/report-document/application/use-cases/list-report-documents.use-case.js";
 import { XuLyLayChiTietBaoCaoTaiLieu } from "./modules/report-document/application/use-cases/get-report-document.use-case.js";
 import { XuLyDuyetBaoCaoTaiLieu } from "./modules/report-document/application/use-cases/approve-report-document.use-case.js";
+import { XuLyTaoBaoCaoTaiLieu } from "./modules/report-document/application/use-cases/create-report-document.use-case.js";
 import { XuLyTuChoiBaoCaoTaiLieu } from "./modules/report-document/application/use-cases/reject-report-document.use-case.js";
 import { XuLyGuiThongBaoHeThong } from "./modules/notifications/application/use-cases/send-system-notification.use-case.js";
 import { DichVuGuiThongBaoDayFirebase } from "./modules/notifications/infrastructure/firebase-push-notification.provider.js";
 import { KhoThongBaoHeThongPostgres } from "./modules/notifications/infrastructure/postgres-system-notification.repository.js";
 import { KhoThongBaoNguoiDungPostgres } from "./modules/notifications/infrastructure/postgres-user-notification.repository.js";
+import { KhoThongBaoNhacDeadlinePostgres } from "./modules/notifications/infrastructure/postgres-deadline-notification.repository.js";
+import { KhoTuyChinhThongBaoDayPostgres } from "./modules/notifications/infrastructure/postgres-notification-preference.repository.js";
 import { XuLyDanhDauTatCaDaDocThongBao } from "./modules/notifications/application/use-cases/mark-all-user-notifications-read.use-case.js";
 import { XuLyDanhDauDaDocThongBao } from "./modules/notifications/application/use-cases/mark-user-notification-read.use-case.js";
+import { XuLyAnThongBao } from "./modules/notifications/application/use-cases/hide-user-notification.use-case.js";
 import { XuLyDanhSachThongBaoNguoiDung } from "./modules/notifications/application/use-cases/list-user-notifications.use-case.js";
+import { XuLyLayTuyChinhThongBaoDay } from "./modules/notifications/application/use-cases/get-notification-preference.use-case.js";
+import { XuLyCapNhatTuyChinhThongBaoDay } from "./modules/notifications/application/use-cases/update-notification-preference.use-case.js";
 import { XuLyXemChiTietLoiHeThong } from "./modules/system-admin/application/use-cases/get-error-log-detail.use-case.js";
 import { XuLyXemDungLuongLuuTru } from "./modules/system-admin/application/use-cases/get-storage-usage.use-case.js";
 import { XuLyXemNhatKyHeThong } from "./modules/system-admin/application/use-cases/list-audit-logs.use-case.js";
 import { XuLyXemLoiHeThong } from "./modules/system-admin/application/use-cases/list-error-logs.use-case.js";
 import { DichVuDungLuongCloudinaryStorage } from "./modules/system-admin/infrastructure/cloudinary-storage-usage.provider.js";
 import { KhoDungLuongHeThongPostgres } from "./modules/system-admin/infrastructure/postgres-storage-usage.repository.js";
+import { DichVuPrefilterTroLy } from "./modules/assistant/application/services/assistant-prefilter.service.js";
+import { DichVuGroundingTroLy } from "./modules/assistant/application/services/assistant-grounding.service.js";
+import { DichVuGhiLogLoiTroLy } from "./modules/assistant/application/services/assistant-error-logger.service.js";
+import { XuLyPhanLoaiCauHoi } from "./modules/assistant/application/use-cases/phan-loai-cau-hoi.use-case.js";
+import { XuLyTraLoiTroLy } from "./modules/assistant/application/use-cases/tra-loi-tro-ly.use-case.js";
 import { DichVuGuiEmailSmtp } from "./shared/email/smtp-email.provider.js";
 import { cauHinh } from "./shared/config/env.js";
+import { DichVuTemplatePromptAi } from "./shared/ai/ai-prompt-template.service.js";
+import { DichVuGeminiAi } from "./shared/ai/gemini-ai.provider.js";
 import { KetNoiPostgres } from "./shared/database/postgres.js";
 import { BoQuanLyGiaoDichPostgres } from "./shared/database/transaction.js";
 import { DichVuLuuTruTepCloudinary } from "./shared/storage/cloudinary-file-storage.provider.js";
@@ -159,25 +198,32 @@ const taoBoPhuThuoc = () => {
   const khoHocThuatTruongHoc = new KhoHocThuatTruongHocPostgres(coSoDuLieu);
   const khoTaiLieu = new KhoTaiLieuPostgres(coSoDuLieu);
   const khoDeadline = new KhoDeadlinePostgres(coSoDuLieu);
+  const khoTuyChinhNhacNho = new KhoTuyChinhNhacNhoPostgres(coSoDuLieu);
+  const khoThongBaoNhacDeadline = new KhoThongBaoNhacDeadlinePostgres(coSoDuLieu);
   const khoHocPhan = new KhoHocPhanPostgres(coSoDuLieu);
   const khoDiemSo = new KhoDiemSoPostgres(coSoDuLieu);
   const khoGhiChu = new KhoGhiChuPostgres(coSoDuLieu);
   const khoLichHoc = new KhoLichHocPostgres(coSoDuLieu);
+  const khoLichThi = new KhoLichThiPostgres(coSoDuLieu);
   const khoNhomHocTap = new KhoNhomHocTapPostgres(coSoDuLieu);
   const khoKanban = new KhoKanbanPostgres(coSoDuLieu);
   const khoFlashcard = new KhoFlashcardPostgres(coSoDuLieu);
   const khoBaoCaoTaiLieu = new KhoBaoCaoTaiLieuPostgres(coSoDuLieu);
   const khoThongBaoHeThong = new KhoThongBaoHeThongPostgres(coSoDuLieu);
   const khoThongBaoNguoiDung = new KhoThongBaoNguoiDungPostgres(coSoDuLieu);
+  const khoTuyChinhThongBaoDay = new KhoTuyChinhThongBaoDayPostgres(coSoDuLieu);
   const khoDungLuongHeThong = new KhoDungLuongHeThongPostgres(coSoDuLieu);
 
   const boMaHoaMatKhau = new BoMaHoaMatKhauBcrypt();
+  const boKiemTraDoMatKhau = new BoKiemTraDoMatKhauTheoQuyTac();
   const dichVuToken = new DichVuTokenJwt();
   const dichVuGuiEmail = new DichVuGuiEmailSmtp(cauHinh.email.smtp);
   const boKiemTraDanhTinhGoogle = new BoKiemTraDanhTinhGoogleQuaAPI(cauHinh.auth.googleClientIds);
   const dichVuGuiThongBaoDay = new DichVuGuiThongBaoDayFirebase(cauHinh.firebase);
   const dichVuDungLuongFirebase = new DichVuDungLuongCloudinaryStorage(cauHinh.cloudinary);
   const dichVuLuuTruTep = new DichVuLuuTruTepCloudinary(cauHinh.cloudinary);
+  const dichVuPromptAi = new DichVuTemplatePromptAi();
+  const dichVuGeminiAi = new DichVuGeminiAi(cauHinh.gemini);
 
   const xuLyDangNhap = new XuLyDangNhap({
     khoNguoiDung,
@@ -190,6 +236,7 @@ const taoBoPhuThuoc = () => {
 
   const xuLyDangNhapGoogle = new XuLyDangNhapGoogle({
     khoNguoiDung,
+    khoDangKySinhVien,
     khoPhienDangNhap,
     khoNhatKyHeThong,
     boMaHoaMatKhau,
@@ -204,6 +251,7 @@ const taoBoPhuThuoc = () => {
     khoDangKySinhVien,
     khoNhatKyHeThong,
     boMaHoaMatKhau,
+    boKiemTraDoMatKhau,
     giaoDich,
     maCodeVaiTroSinhVienMacDinh: cauHinh.auth.maCodeVaiTroSinhVienMacDinh
   });
@@ -251,16 +299,29 @@ const taoBoPhuThuoc = () => {
     giaoDich
   });
 
-  const xuLyLayNguoiDungHienTai = new XuLyLayNguoiDungHienTai({ khoNguoiDung });
+  const xuLyLayNguoiDungHienTai = new XuLyLayNguoiDungHienTai({
+    khoNguoiDung,
+    khoDangKySinhVien,
+    maCodeVaiTroSinhVienMacDinh: cauHinh.auth.maCodeVaiTroSinhVienMacDinh
+  });
   const xuLyCapNhatThongTinNguoiDungHienTai = new XuLyCapNhatThongTinNguoiDungHienTai({
     khoNguoiDung,
+    khoDangKySinhVien,
     khoNhatKyHeThong,
+    giaoDich,
+    maCodeVaiTroSinhVienMacDinh: cauHinh.auth.maCodeVaiTroSinhVienMacDinh
+  });
+  const xuLyGuiThongBaoHeThong = new XuLyGuiThongBaoHeThong({
+    khoThongBaoHeThong,
+    khoNhatKyHeThong,
+    dichVuGuiThongBaoDay,
     giaoDich
   });
   const xuLyGuiPhanHoiNguoiDungHienTai = new XuLyGuiPhanHoiNguoiDungHienTai({
     khoNhatKyHeThong,
     giaoDich,
-    dichVuLuuTruTep
+    dichVuLuuTruTep,
+    xuLyGuiThongBaoHeThong
   });
   const xuLyCapNhatAnhDaiDienCuaToi = new XuLyCapNhatAnhDaiDienCuaToi({
     khoNguoiDung,
@@ -335,6 +396,11 @@ const taoBoPhuThuoc = () => {
   const xuLyDanhSachTaiLieuSinhVien = new XuLyDanhSachTaiLieuSinhVien({
     khoTaiLieu
   });
+  const xuLyTomTatTaiLieuBangAi = new XuLyTomTatTaiLieuBangAi({
+    khoNhatKyHeThong,
+    dichVuPromptAi,
+    dichVuGeminiAi
+  });
   const xuLyXoaTaiLieuSinhVien = new XuLyXoaTaiLieuSinhVien({
     khoTaiLieu,
     khoNhatKyHeThong,
@@ -355,6 +421,8 @@ const taoBoPhuThuoc = () => {
   const dichVuGhiLogLoiThoiKhoaBieu = new DichVuGhiLogLoiThoiKhoaBieu({ khoNhatKyHeThong });
   const dichVuMappingImportThoiKhoaBieu = new DichVuMappingImportThoiKhoaBieu();
   const boDocTepImportThoiKhoaBieu = new BoDocTepImportThoiKhoaBieuXlsxPdf();
+  const dichVuMappingImportLichThi = new DichVuMappingImportLichThi();
+  const boDocTepImportLichThi = new BoDocTepImportLichThiXlsxPdf();
   const dichVuGhiLogLoiDiemSo = new DichVuGhiLogLoiDiemSo({ khoNhatKyHeThong });
   const dichVuMappingImportDiemSo = new DichVuMappingImportDiemSo();
   const boDocTepImportDiemSo = new BoDocTepImportDiemSoXlsxText();
@@ -362,6 +430,7 @@ const taoBoPhuThuoc = () => {
   const dichVuGhiLogLoiKanban = new DichVuGhiLogLoiKanban({ khoNhatKyHeThong });
   const dichVuGhiLogLoiFlashcard = new DichVuGhiLogLoiFlashcard({ khoNhatKyHeThong });
   const boDocTepImportFlashcard = new BoDocTepImportFlashcardXlsxCsv();
+  const boTrichXuatVanBanTaiLieu = new BoTrichXuatVanBanTaiLieuMacDinh();
   const phuThuocGhiChuCoBan = {
     khoGhiChu,
     khoNhatKyHeThong,
@@ -402,6 +471,8 @@ const taoBoPhuThuoc = () => {
   const xuLyDanhSachHocPhan = new XuLyDanhSachHocPhan({ khoHocPhan });
   const xuLyChiTietHocPhan = new XuLyChiTietHocPhan({ khoHocPhan });
   const xuLyTaoHocKy = new XuLyTaoHocKy(phuThuocHocPhanCoBan);
+  const xuLyCapNhatHocKy = new XuLyCapNhatHocKy(phuThuocHocPhanCoBan);
+  const xuLyXoaHocKy = new XuLyXoaHocKy(phuThuocHocPhanCoBan);
   const xuLyTaoHocPhan = new XuLyTaoHocPhan(phuThuocHocPhanCoBan);
   const xuLyCapNhatHocPhan = new XuLyCapNhatHocPhan(phuThuocHocPhanCoBan);
   const xuLyXoaHocPhan = new XuLyXoaHocPhan(phuThuocHocPhanCoBan);
@@ -417,9 +488,22 @@ const taoBoPhuThuoc = () => {
     khoNhatKyHeThong,
     dichVuGhiLogLoiDeadline
   });
-  const xuLyTaoDeadline = new XuLyTaoDeadline(phuThuocDeadlineCoBan);
+  const xuLyTaoDeadline = new XuLyTaoDeadline({ ...phuThuocDeadlineCoBan, khoTuyChinhNhacNho });
   const xuLyCapNhatTrangThaiDeadline = new XuLyCapNhatTrangThaiDeadline(phuThuocDeadlineCoBan);
   const xuLyXoaDeadline = new XuLyXoaDeadline(phuThuocDeadlineCoBan);
+  const xuLyLayTuyChinhNhacNho = new XuLyLayTuyChinhNhacNho({ khoTuyChinhNhacNho });
+  const xuLyCapNhatTuyChinhNhacNho = new XuLyCapNhatTuyChinhNhacNho({
+    khoTuyChinhNhacNho,
+    khoNhatKyHeThong,
+    dichVuGhiLogLoiDeadline
+  });
+  const dichVuQuetNhacNhoDeadline = new DichVuQuetNhacNhoDeadline({
+    khoDeadline,
+    khoLichThi,
+    khoThongBaoNhacDeadline,
+    dichVuGuiThongBaoDay,
+    khoNhatKyHeThong
+  });
 
   const phuThuocLichHocCoBan = {
     khoLichHoc,
@@ -440,10 +524,38 @@ const taoBoPhuThuoc = () => {
     dichVuMappingImportThoiKhoaBieu,
     dichVuGhiLogLoiThoiKhoaBieu
   });
+  const xuLyGoiYMappingImportLichHocBangAi = new XuLyGoiYMappingImportLichHocBangAi({
+    dichVuPromptAi,
+    dichVuGeminiAi,
+    dichVuGhiLogLoiThoiKhoaBieu
+  });
   const xuLyXacNhanImportThoiKhoaBieu = new XuLyXacNhanImportThoiKhoaBieu({
     ...phuThuocLichHocCoBan,
-    khoHocPhan
+    khoHocPhan,
+    khoDiemSo
   });
+
+  const phuThuocLichThiCoBan = {
+    khoLichThi,
+    khoNhatKyHeThong,
+    giaoDich
+  };
+  const xuLyDanhSachLichThi = new XuLyDanhSachLichThi({ khoLichThi });
+  const xuLyTaoLichThi = new XuLyTaoLichThi(phuThuocLichThiCoBan);
+  const xuLyCapNhatLichThi = new XuLyCapNhatLichThi(phuThuocLichThiCoBan);
+  const xuLyXoaLichThi = new XuLyXoaLichThi(phuThuocLichThiCoBan);
+  const xuLyTrichXuatHeaderImportLichThi = new XuLyTrichXuatHeaderImportLichThi({
+    boDocTepImportLichThi
+  });
+  const xuLyPreviewImportLichThi = new XuLyPreviewImportLichThi({
+    khoLichThi,
+    dichVuMappingImportLichThi
+  });
+  const xuLyGoiYMappingImportLichThiBangAi = new XuLyGoiYMappingImportLichThiBangAi({
+    dichVuPromptAi,
+    dichVuGeminiAi
+  });
+  const xuLyXacNhanImportLichThi = new XuLyXacNhanImportLichThi(phuThuocLichThiCoBan);
 
   const phuThuocDiemSoCoBan = {
     khoDiemSo,
@@ -463,6 +575,13 @@ const taoBoPhuThuoc = () => {
     khoDiemSo,
     khoNhatKyHeThong,
     dichVuGhiLogLoiDiemSo
+  });
+  const xuLyLayGoiYHocTapBangAi = new XuLyLayGoiYHocTapBangAi({
+    khoDiemSo,
+    khoNhatKyHeThong,
+    dichVuGhiLogLoiDiemSo,
+    dichVuPromptAi,
+    dichVuGeminiAi
   });
   const xuLyTrichXuatHeaderImportDiemSo = new XuLyTrichXuatHeaderImportDiemSo({
     boDocTepImportDiemSo,
@@ -539,10 +658,33 @@ const taoBoPhuThuoc = () => {
     ...phuThuocFlashcardCoBan,
     boDocTepImportFlashcard
   });
+  const xuLyTaoFlashcardBangAi = new XuLyTaoFlashcardBangAi({
+    ...phuThuocFlashcardCoBan,
+    dichVuPromptAi,
+    dichVuGeminiAi
+  });
+  const xuLyTaoFlashcardTuFile = new XuLyTaoFlashcardTuFile({
+    ...phuThuocFlashcardCoBan,
+    boTrichXuatVanBanTaiLieu,
+    dichVuPromptAi,
+    dichVuGeminiAi
+  });
+  const xuLyTaoFlashcardTuLuanTuFile = new XuLyTaoFlashcardTuLuanTuFile({
+    ...phuThuocFlashcardCoBan,
+    boTrichXuatVanBanTaiLieu,
+    dichVuPromptAi,
+    dichVuGeminiAi
+  });
   const xuLyCapNhatTheFlashcard = new XuLyCapNhatTheFlashcard(phuThuocFlashcardCoBan);
   const xuLyXoaTheFlashcard = new XuLyXoaTheFlashcard(phuThuocFlashcardCoBan);
   const xuLyBatDauOnTapFlashcard = new XuLyBatDauOnTapFlashcard({
     khoFlashcard,
+    khoNhatKyHeThong,
+    dichVuGhiLogLoiFlashcard
+  });
+  const xuLyGhiKetQuaPhienFlashcard = new XuLyGhiKetQuaPhienFlashcard({
+    khoFlashcard,
+    khoThongBaoHeThong,
     khoNhatKyHeThong,
     dichVuGhiLogLoiFlashcard
   });
@@ -567,11 +709,11 @@ const taoBoPhuThuoc = () => {
     giaoDich,
     dichVuGuiEmail
   });
-  const xuLyGuiThongBaoHeThong = new XuLyGuiThongBaoHeThong({
-    khoThongBaoHeThong,
+  const xuLyTaoBaoCaoTaiLieu = new XuLyTaoBaoCaoTaiLieu({
+    khoBaoCaoTaiLieu,
     khoNhatKyHeThong,
-    dichVuGuiThongBaoDay,
-    giaoDich
+    giaoDich,
+    xuLyGuiThongBaoHeThong
   });
   const xuLyDanhSachThongBaoNguoiDung = new XuLyDanhSachThongBaoNguoiDung({
     khoThongBaoNguoiDung
@@ -580,8 +722,19 @@ const taoBoPhuThuoc = () => {
     khoThongBaoNguoiDung,
     khoNhatKyHeThong
   });
+  const xuLyAnThongBao = new XuLyAnThongBao({
+    khoThongBaoNguoiDung,
+    khoNhatKyHeThong
+  });
   const xuLyDanhDauTatCaDaDocThongBao = new XuLyDanhDauTatCaDaDocThongBao({
     khoThongBaoNguoiDung,
+    khoNhatKyHeThong
+  });
+  const xuLyLayTuyChinhThongBaoDay = new XuLyLayTuyChinhThongBaoDay({
+    khoTuyChinhThongBaoDay
+  });
+  const xuLyCapNhatTuyChinhThongBaoDay = new XuLyCapNhatTuyChinhThongBaoDay({
+    khoTuyChinhThongBaoDay,
     khoNhatKyHeThong
   });
   const xuLyXemDungLuongLuuTru = new XuLyXemDungLuongLuuTru({
@@ -592,6 +745,25 @@ const taoBoPhuThuoc = () => {
   const xuLyXemNhatKyHeThong = new XuLyXemNhatKyHeThong({ khoNhatKyHeThong });
   const xuLyXemLoiHeThong = new XuLyXemLoiHeThong({ khoNhatKyHeThong });
   const xuLyXemChiTietLoiHeThong = new XuLyXemChiTietLoiHeThong({ khoNhatKyHeThong });
+
+  const dichVuPrefilterTroLy = new DichVuPrefilterTroLy();
+  const dichVuGroundingTroLy = new DichVuGroundingTroLy({
+    khoDiemSo,
+    khoLichHoc,
+    khoDeadline,
+    khoFlashcard
+  });
+  const dichVuGhiLogLoiTroLy = new DichVuGhiLogLoiTroLy({ khoNhatKyHeThong });
+  const xuLyPhanLoaiCauHoi = new XuLyPhanLoaiCauHoi({ dichVuPromptAi, dichVuGeminiAi });
+  const xuLyTraLoiTroLy = new XuLyTraLoiTroLy({
+    dichVuPrefilterTroLy,
+    xuLyPhanLoaiCauHoi,
+    dichVuGroundingTroLy,
+    dichVuPromptAi,
+    dichVuGeminiAi,
+    khoNhatKyHeThong,
+    dichVuGhiLogLoiTroLy
+  });
 
   return {
     coSoDuLieu,
@@ -609,6 +781,7 @@ const taoBoPhuThuoc = () => {
     khoDiemSo,
     khoGhiChu,
     khoLichHoc,
+    khoLichThi,
     khoNhomHocTap,
     khoKanban,
     khoFlashcard,
@@ -652,10 +825,13 @@ const taoBoPhuThuoc = () => {
     xuLyCapNhatQuyCheHocLucTruongHoc,
     xuLyUploadChiaSeTaiLieu,
     xuLyDanhSachTaiLieuSinhVien,
+    xuLyTomTatTaiLieuBangAi,
     xuLyXoaTaiLieuSinhVien,
     xuLyDanhSachHocPhan,
     xuLyChiTietHocPhan,
     xuLyTaoHocKy,
+    xuLyCapNhatHocKy,
+    xuLyXoaHocKy,
     xuLyTaoHocPhan,
     xuLyCapNhatHocPhan,
     xuLyXoaHocPhan,
@@ -663,6 +839,9 @@ const taoBoPhuThuoc = () => {
     xuLyTaoDeadline,
     xuLyCapNhatTrangThaiDeadline,
     xuLyXoaDeadline,
+    xuLyLayTuyChinhNhacNho,
+    xuLyCapNhatTuyChinhNhacNho,
+    dichVuQuetNhacNhoDeadline,
     xuLyTaoGhiChu,
     xuLyDanhSachGhiChu,
     xuLyLayChiTietGhiChu,
@@ -675,12 +854,22 @@ const taoBoPhuThuoc = () => {
     xuLyXoaLichHoc,
     xuLyTrichXuatHeaderImportThoiKhoaBieu,
     xuLyPreviewImportThoiKhoaBieu,
+    xuLyGoiYMappingImportLichHocBangAi,
     xuLyXacNhanImportThoiKhoaBieu,
+    xuLyDanhSachLichThi,
+    xuLyTaoLichThi,
+    xuLyCapNhatLichThi,
+    xuLyXoaLichThi,
+    xuLyTrichXuatHeaderImportLichThi,
+    xuLyPreviewImportLichThi,
+    xuLyGoiYMappingImportLichThiBangAi,
+    xuLyXacNhanImportLichThi,
     xuLyXemBangDiem,
     xuLyTaoThanhPhanDiem,
     xuLyCapNhatThanhPhanDiem,
     xuLyCauHinhTrongSoDiem,
     xuLyDuPhongGpa,
+    xuLyLayGoiYHocTapBangAi,
     xuLyTrichXuatHeaderImportDiemSo,
     xuLyPreviewImportDiemSo,
     xuLyXacNhanImportDiemSo,
@@ -704,23 +893,32 @@ const taoBoPhuThuoc = () => {
     xuLyXoaBoFlashcard,
     xuLyTaoTheFlashcard,
     xuLyImportFlashcards,
+    xuLyTaoFlashcardBangAi,
+    xuLyTaoFlashcardTuFile,
+    xuLyTaoFlashcardTuLuanTuFile,
     xuLyCapNhatTheFlashcard,
     xuLyXoaTheFlashcard,
     xuLyBatDauOnTapFlashcard,
+    xuLyGhiKetQuaPhienFlashcard,
     xuLyCapNhatTienDoFlashcard,
     xuLyThongKeFlashcard,
     xuLyDanhSachBaoCaoTaiLieu,
     xuLyLayChiTietBaoCaoTaiLieu,
     xuLyDuyetBaoCaoTaiLieu,
     xuLyTuChoiBaoCaoTaiLieu,
+    xuLyTaoBaoCaoTaiLieu,
     xuLyGuiThongBaoHeThong,
     xuLyDanhSachThongBaoNguoiDung,
     xuLyDanhDauDaDocThongBao,
+    xuLyAnThongBao,
     xuLyDanhDauTatCaDaDocThongBao,
+    xuLyLayTuyChinhThongBaoDay,
+    xuLyCapNhatTuyChinhThongBaoDay,
     xuLyXemDungLuongLuuTru,
     xuLyXemNhatKyHeThong,
     xuLyXemLoiHeThong,
-    xuLyXemChiTietLoiHeThong
+    xuLyXemChiTietLoiHeThong,
+    xuLyTraLoiTroLy
   };
 };
 
@@ -728,6 +926,3 @@ export const xayDungBoPhuThuoc = () => {
   boPhuThuoc ??= taoBoPhuThuoc();
   return boPhuThuoc;
 };
-
-
-

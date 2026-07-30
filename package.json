@@ -10,8 +10,8 @@
     "build": "tsc -p tsconfig.json",
     "start": "node dist/main.js",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "openapi:sync": "tsx scripts/sync-openapi.ts",
-    "openapi:watch": "tsx scripts/sync-openapi.ts --watch"
+    "openapi:sync": "tsx src/shared/openapi/openapi-sync.ts",
+    "openapi:watch": "tsx src/shared/openapi/openapi-sync.ts --watch"
   },
   "dependencies": {
     "@types/multer": "^2.1.0",
@@ -23,6 +23,7 @@
     "firebase-admin": "^14.0.0",
     "helmet": "^8.0.0",
     "jsonwebtoken": "^9.0.2",
+    "mammoth": "^1.12.0",
     "morgan": "^1.10.0",
     "multer": "^2.2.0",
     "nodemailer": "^6.10.1",

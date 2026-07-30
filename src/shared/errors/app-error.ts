@@ -38,4 +38,8 @@ export class LoiUngDung extends Error {
   static biKhoa(message = "Account is locked") {
     return new LoiUngDung(423, CacLoi.ACCOUNT_LOCKED, message);
   }
+
+  static dichVuBan(message = "Service is temporarily unavailable", chiTiet?: unknown) {
+    return new LoiUngDung(503, CacLoi.SERVICE_UNAVAILABLE, message, chiTiet);
+  }
 }

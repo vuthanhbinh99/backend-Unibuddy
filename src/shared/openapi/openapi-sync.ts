@@ -1,7 +1,7 @@
 import { watch } from "node:fs";
 import { readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 
 type MoTaTuyenDuong = {
   method: string;
@@ -184,6 +184,10 @@ function layMoTa(duongDan: string, method: string) {
 
   if (duongDan === "/notifications/{maThongBao}/read") {
     return "Mark user notification as read";
+  }
+
+  if (duongDan === "/notifications/{maThongBao}/hide") {
+    return "Hide user notification";
   }
 
   if (duongDan === "/student/documents") {
@@ -760,4 +764,12 @@ export function batDauDongBoOpenApi() {
     boQuanSat?.close();
     boQuanSat = null;
   };
+}
+
+if (import.meta.url === pathToFileURL(process.argv[1] ?? "").href) {
+  if (process.argv.includes("--watch")) {
+    batDauDongBoOpenApi();
+  } else {
+    await dongBoOpenApi();
+  }
 }

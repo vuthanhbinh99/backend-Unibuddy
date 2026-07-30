@@ -13,6 +13,7 @@ import { xayDungTuyenDuongDinhKemGhiChu } from "./modules/notes/presentation/att
 import { xayDungTuyenDuongGhiChu } from "./modules/notes/presentation/note.routes.js";
 import { xayDungTuyenDuongBaoCaoTaiLieu } from "./modules/report-document/presentation/report-document.routes.js";
 import { xayDungTuyenDuongLichHoc } from "./modules/schedules/presentation/schedule.routes.js";
+import { xayDungTuyenDuongLichThi } from "./modules/exams/presentation/exam.routes.js";
 import { xayDungTuyenDuongTruongHoc } from "./modules/schools/presentation/school.routes.js";
 import { xayDungTuyenDuongNhomHocTap } from "./modules/study-groups/presentation/study-group.routes.js";
 import { xayDungTuyenDuongThongBaoHeThong } from "./modules/notifications/presentation/system-notification.routes.js";
@@ -20,6 +21,7 @@ import { xayDungTuyenDuongThongBaoNguoiDung } from "./modules/notifications/pres
 import { xayDungTuyenDuongQuanTriHeThong } from "./modules/system-admin/presentation/system-admin.routes.js";
 import { xayDungTuyenDuongNguoiDungQuanTri } from "./modules/users/presentation/admin-user.routes.js";
 import { xayDungTuyenDuongNguoiDung } from "./modules/users/presentation/user.routes.js";
+import { xayDungTuyenDuongTroLy } from "./modules/assistant/presentation/assistant.routes.js";
 
 export const xayDungTuyenDuong = () => {
   const router = Router();
@@ -33,12 +35,14 @@ export const xayDungTuyenDuong = () => {
   router.use("/courses", xayDungTuyenDuongHocPhan(boPhuThuoc));
   router.use("/deadlines", xayDungTuyenDuongDeadline(boPhuThuoc));
   router.use("/schedules", xayDungTuyenDuongLichHoc(boPhuThuoc));
+  router.use("/exams", xayDungTuyenDuongLichThi(boPhuThuoc));
   router.use("/diem-so", xayDungTuyenDuongDiemSo(boPhuThuoc));
   router.use("/study-groups", xayDungTuyenDuongNhomHocTap(boPhuThuoc));
   router.use("/notifications", xayDungTuyenDuongThongBaoNguoiDung(boPhuThuoc));
   router.use("/kanban", xayDungTuyenDuongKanban(boPhuThuoc));
   router.use("/flashcard-decks", xayDungTuyenDuongBoFlashcard(boPhuThuoc));
   router.use("/flashcards", xayDungTuyenDuongFlashcard(boPhuThuoc));
+  router.use("/assistant", xayDungTuyenDuongTroLy(boPhuThuoc));
   router.use("/student/documents", xayDungTuyenDuongTaiLieuSinhVien(boPhuThuoc));
   router.use("/admin/users", xayDungTuyenDuongNguoiDungQuanTri(boPhuThuoc));
   router.use("/admin/schools", xayDungTuyenDuongTruongHoc(boPhuThuoc));
