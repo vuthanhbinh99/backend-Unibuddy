@@ -9,7 +9,6 @@ import type { DichVuGhiLogLoiDiemSo } from "../services/grade-error-logger.servi
 import {
   SAI_SO_TRONG_SO,
   chuanHoaTenThanhPhan,
-  laDiemHopLe,
   laTrongSoHopLe
 } from "./grade-use-case.helpers.js";
 
@@ -19,7 +18,6 @@ export type LenhCauHinhTrongSoDiem = {
   components?: Array<{
     tenThanhPhan?: string | null;
     trongSo?: number | null;
-    diem?: number | null;
   }> | null;
 };
 
@@ -51,40 +49,60 @@ export class XuLyCauHinhTrongSoDiem {
     }
 
     try {
-      const thanhPhan = await this.deps.giaoDich.thucThiTrongGiaoDich(async (tx) => {
-        const daLuu = await this.deps.khoDiemSo.thayTheCauHinhTrongSo(
-          duLieuHopLe.maMonHoc,
-          duLieuHopLe.components,
-          tx
-        );
+      const thanhPhan = await this.deps.giaoDich.thucThiTrongGiaoDich(async (tx) =>
+        this.deps.khoDiemSo.thayTheCauHinhTrongSo(duLieuHopLe.maMonHoc, duLieuHopLe.components, tx)
+      );
 
-        await this.deps.khoNhatKyHeThong.tao(
-          {
+      try {
+        await this.deps.khoNhatKyHeThong.tao({
+          actorId: command.actorId,
+          level: "INFO",
+          action: "GRADE_WEIGHT_CONFIGURED",
+          tableName: "thanh_phan_diem",
+          recordId: duLieuHopLe.maMonHoc,
+          message: "Sinh viên thiết lập trọng số điểm môn học thành công",
+          metadata: {
+            maMonHoc: monHoc.maMonHoc,
+            maMon: monHoc.maMon,
+            tenMon: monHoc.tenMon,
+            soThanhPhan: thanhPhan.length,
+            tongTrongSo: duLieuHopLe.components.reduce((tong, item) => tong + item.trongSo, 0),
+            ruleCode: "BR-EDU-02"
+          }
+        });
+      } catch (auditError) {
+        await this.deps.dichVuGhiLogLoiDiemSo.ghiCanhBao({
+          actorId: command.actorId,
+          action: "GRADE_WEIGHT_AUDIT_LOG_FAILED",
+          tableName: "thanh_phan_diem",
+          message: "Không thể ghi audit khi cấu hình trọng số",
+          metadata: {
+            maMonHoc: monHoc.maMonHoc,
+            auditErrorMessage: auditError instanceof Error ? auditError.message : String(auditError)
+          }
+        });
+      }
+
+      const ketQuaMonHoc = await this.tinhKetQuaMonHoc(command.actorId, monHoc.maMonHoc).catch(
+        async (error) => {
+          await this.deps.dichVuGhiLogLoiDiemSo.ghiCanhBao({
             actorId: command.actorId,
-            level: "INFO",
-            action: "GRADE_WEIGHT_CONFIGURED",
+            action: "GRADE_WEIGHT_RECALCULATE_FAILED",
             tableName: "thanh_phan_diem",
-            recordId: duLieuHopLe.maMonHoc,
-            message: "Sinh viên thiết lập trọng số điểm môn học thành công",
+            message: "Lỗi tính lại kết quả môn học sau khi cấu hình trọng số",
             metadata: {
               maMonHoc: monHoc.maMonHoc,
-              maMon: monHoc.maMon,
-              tenMon: monHoc.tenMon,
-              soThanhPhan: daLuu.length,
-              tongTrongSo: duLieuHopLe.components.reduce((tong, item) => tong + item.trongSo, 0),
-              ruleCode: "BR-EDU-02"
+              errorMessage: error instanceof Error ? error.message : String(error)
             }
-          },
-          tx
-        );
-
-        return daLuu;
-      });
+          });
+          return null;
+        }
+      );
 
       return {
         message: "Cấu hình cấu trúc phần trăm điểm thành công!",
         thanhPhan,
-        ketQuaMonHoc: await this.tinhKetQuaMonHoc(command.actorId, monHoc.maMonHoc)
+        ketQuaMonHoc
       };
     } catch (error) {
       if (error instanceof LoiUngDung) {
@@ -132,19 +150,14 @@ export class XuLyCauHinhTrongSoDiem {
       }
 
       if (!laTrongSoHopLe(item.trongSo)) {
-        errors.push(`Dòng ${index + 1}: Trọng số phải lớn hơn 0 và không vượt quá 100`);
-      }
-
-      if (item.diem !== undefined && item.diem !== null && !laDiemHopLe(item.diem)) {
-        errors.push(`Dòng ${index + 1}: Điểm số phải từ 0 đến 10`);
+        errors.push(`Dòng ${index + 1}: Trọng số phải từ 0 đến 100`);
       }
 
       if (tenThanhPhan && laTrongSoHopLe(item.trongSo)) {
         daGapTen.add(tenChuanHoa);
         duLieuComponents.push({
           tenThanhPhan,
-          trongSo: item.trongSo,
-          diem: item.diem ?? undefined
+          trongSo: item.trongSo
         });
       }
     }

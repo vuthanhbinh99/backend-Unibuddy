@@ -121,8 +121,8 @@ export class DichVuMappingImportDiemSo {
       loi.push("Thiếu tên thành phần điểm");
     }
 
-    if (trongSo === null || !Number.isFinite(trongSo) || trongSo <= 0 || trongSo > 100) {
-      loi.push("Trọng số phải lớn hơn 0 và không vượt quá 100");
+    if (trongSo === null || !Number.isFinite(trongSo) || trongSo < 0 || trongSo > 100) {
+      loi.push("Trọng số phải từ 0 đến 100");
     }
 
     if (diem === null || !Number.isFinite(diem) || diem < 0 || diem > 10) {

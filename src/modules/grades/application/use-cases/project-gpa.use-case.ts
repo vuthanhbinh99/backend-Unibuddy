@@ -72,26 +72,22 @@ export class XuLyDuPhongGpa {
       }
 
       const maTruongCode = await this.deps.khoDiemSo.layMaTruongCodeSinhVien(command.actorId);
+      const [thangDiem, quyCheHocLuc] = maTruongCode
+        ? await Promise.all([
+            this.deps.khoDiemSo.layThangDiem(maTruongCode),
+            this.deps.khoDiemSo.layQuyCheHocLuc(maTruongCode)
+          ])
+        : [[], []];
 
-      if (!maTruongCode) {
-        await this.ghiCanhBaoThieuCauHinh(command.actorId, maHocKy, targetGpa, "GRADE_GPA_PROJECTION_SCHOOL_PROFILE_MISSING", {
-          reasonCode: "SCHOOL_PROFILE_MISSING"
-        });
-        throw LoiUngDung.khongTheXuLy("Không thể dự phóng GPA do hệ thống chưa xác định được trường học của sinh viên");
-      }
+      const coThieuCauHinh = !maTruongCode || thangDiem.length === 0 || quyCheHocLuc.length === 0;
 
-      const [thangDiem, quyCheHocLuc] = await Promise.all([
-        this.deps.khoDiemSo.layThangDiem(maTruongCode),
-        this.deps.khoDiemSo.layQuyCheHocLuc(maTruongCode)
-      ]);
-
-      if (thangDiem.length === 0 || quyCheHocLuc.length === 0) {
+      if (coThieuCauHinh) {
         await this.ghiCanhBaoThieuCauHinh(command.actorId, maHocKy, targetGpa, "GRADE_GPA_PROJECTION_RULES_MISSING", {
           maTruongCode,
+          hasSchoolProfile: Boolean(maTruongCode),
           hasScoreScale: thangDiem.length > 0,
           hasStandingRules: quyCheHocLuc.length > 0
         });
-        throw LoiUngDung.khongTheXuLy("Hệ thống chưa thiết lập cấu hình thang điểm cho trường học này");
       }
 
       const thanhPhanTheoMon = new Map(
@@ -106,6 +102,27 @@ export class XuLyDuPhongGpa {
       const monDaHoanThanh = bangDiem.items.filter((item) => item.ketQua.diemHe4 !== null && item.ketQua.dayDuDiem);
       const monChuaHoanThanh = bangDiem.items.filter((item) => item.ketQua.diemHe4 === null || !item.ketQua.dayDuDiem);
       const tongTinChi = bangDiem.items.reduce((tong, item) => tong + item.soTinChi, 0);
+
+      if (coThieuCauHinh) {
+        return {
+          message:
+            "Hệ thống chưa có đủ cấu hình thang điểm hoặc quy chế học lực cho trường học này nên chỉ hiển thị được dữ liệu hiện có.",
+          maHocKy,
+          targetGpa,
+          tongTinChi,
+          tongDiemHe4MucTieu: lamTron(targetGpa * tongTinChi),
+          diemHe4DaCo: lamTron(monDaHoanThanh.reduce((tong, item) => tong + (item.ketQua.diemHe4 ?? 0) * item.soTinChi, 0)),
+          diemHe4ConLai: null,
+          soTinChiDaHoanThanh: monDaHoanThanh.reduce((tong, item) => tong + item.soTinChi, 0),
+          soTinChiConLai: monChuaHoanThanh.reduce((tong, item) => tong + item.soTinChi, 0),
+          gpaHienTai: bangDiem.tongKet.gpaHocKy,
+          gpaToiDaCoTheDat: null,
+          diemHe4CanDatMoiTinChi: null,
+          diemHe10ToiThieu: null,
+          diemChuDuKien: null,
+          goiY: []
+        };
+      }
 
       if (tongTinChi === 0) {
         await this.deps.dichVuGhiLogLoiDiemSo.ghiCanhBao({
@@ -211,17 +228,31 @@ export class XuLyDuPhongGpa {
         );
       }
 
-      await this.ghiLogDuPhongThanhCong(command.actorId, maHocKy, targetGpa, {
-        tongTinChi,
-        tongDiemHe4MucTieu: lamTron(tongDiemHe4MucTieu),
-        diemHe4DaCo: lamTron(diemHe4DaCo),
-        diemHe4ConLai: lamTron(diemHe4ConLai),
-        soTinChiDaHoanThanh,
-        soTinChiConLai,
-        diemHe4CanDatMoiTinChi: lamTron(Math.max(0, diemHe4CanDatMoiTinChi)),
-        diemHe10ToiThieu,
-        diemChuDuKien: mucDiemCanDat?.diemChu ?? null
-      });
+      try {
+        await this.ghiLogDuPhongThanhCong(command.actorId, maHocKy, targetGpa, {
+          tongTinChi,
+          tongDiemHe4MucTieu: lamTron(tongDiemHe4MucTieu),
+          diemHe4DaCo: lamTron(diemHe4DaCo),
+          diemHe4ConLai: lamTron(diemHe4ConLai),
+          soTinChiDaHoanThanh,
+          soTinChiConLai,
+          diemHe4CanDatMoiTinChi: lamTron(Math.max(0, diemHe4CanDatMoiTinChi)),
+          diemHe10ToiThieu,
+          diemChuDuKien: mucDiemCanDat?.diemChu ?? null
+        });
+      } catch (auditError) {
+        await this.deps.dichVuGhiLogLoiDiemSo.ghiCanhBao({
+          actorId: command.actorId,
+          action: "GRADE_GPA_PROJECTION_AUDIT_LOG_FAILED",
+          tableName: "thanh_phan_diem",
+          message: "Không thể ghi audit khi dự phóng GPA",
+          metadata: {
+            maHocKy,
+            targetGpa,
+            auditErrorMessage: auditError instanceof Error ? auditError.message : String(auditError)
+          }
+        });
+      }
 
       return {
         message: `Để đạt GPA mục tiêu ${targetGpa.toFixed(2)}, bạn cần đạt tối thiểu các mức điểm sau.`,

@@ -145,7 +145,7 @@ export class XuLyTaoThanhPhanDiem {
     }
 
     if (trongSo !== null && trongSo !== undefined && !laTrongSoHopLe(trongSo)) {
-      errors.push("Trọng số phải lớn hơn 0 và không vượt quá 100");
+      errors.push("Trọng số phải từ 0 đến 100");
     }
 
     if (errors.length > 0 || !laDiemHopLe(diem)) {

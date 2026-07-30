@@ -21,7 +21,7 @@ export const laDiemHopLe = (value: unknown): value is number =>
   typeof value === "number" && Number.isFinite(value) && value >= 0 && value <= 10;
 
 export const laTrongSoHopLe = (value: unknown): value is number =>
-  typeof value === "number" && Number.isFinite(value) && value > 0 && value <= 100;
+  typeof value === "number" && Number.isFinite(value) && value >= 0 && value <= 100;
 
 export const layNgayHienTaiIso = () => {
   const formatter = new Intl.DateTimeFormat("en", {

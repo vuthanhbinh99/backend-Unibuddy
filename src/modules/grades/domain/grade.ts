@@ -76,7 +76,6 @@ export type DuLieuUpsertThanhPhanDiem = DuLieuTaoThanhPhanDiem;
 export type CauHinhTrongSoDiem = {
   tenThanhPhan: string;
   trongSo: number;
-  diem?: number | null;
 };
 
 export type DongImportDiemSo = Record<string, unknown>;

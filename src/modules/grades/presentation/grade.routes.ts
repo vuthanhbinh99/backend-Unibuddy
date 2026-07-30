@@ -10,6 +10,7 @@ import {
   luocDoCapNhatThanhPhanDiem,
   luocDoCauHinhTrongSo,
   luocDoDuPhongGpa,
+  luocDoGoiYHocTapBangAi,
   luocDoPreviewImportDiemSo,
   luocDoTaoThanhPhanDiem,
   luocDoXacNhanImportDiemSo,
@@ -63,6 +64,7 @@ export const xayDungTuyenDuongDiemSo = (boPhuThuoc: BoPhuThuocUngDung) => {
   router.post("/", xacThucYeuCau(luocDoTaoThanhPhanDiem), controller.taoThanhPhanDiem);
   router.post("/trong-so", xacThucYeuCau(luocDoCauHinhTrongSo), controller.cauHinhTrongSo);
   router.post("/du-phong", xacThucYeuCau(luocDoDuPhongGpa), controller.duPhongGpa);
+  router.post("/ai/study-advice", xacThucYeuCau(luocDoGoiYHocTapBangAi), controller.goiYHocTapBangAi);
   router.post("/import/headers", taiFileImportDiemSo, controller.trichXuatHeaderImport);
   router.post("/import/preview", xacThucYeuCau(luocDoPreviewImportDiemSo), controller.previewImport);
   router.post("/import/confirm", xacThucYeuCau(luocDoXacNhanImportDiemSo), controller.xacNhanImport);

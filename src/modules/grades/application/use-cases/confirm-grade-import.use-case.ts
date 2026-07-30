@@ -199,7 +199,7 @@ export class XuLyXacNhanImportDiemSo {
       }
 
       if (!laTrongSoHopLe(item.trongSo)) {
-        loi.push("Trọng số phải lớn hơn 0 và không vượt quá 100");
+        loi.push("Trọng số phải từ 0 đến 100");
       }
 
       if (!laDiemHopLe(item.diem)) {

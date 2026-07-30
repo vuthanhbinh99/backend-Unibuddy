@@ -9,7 +9,7 @@ import { taoChiTietImportDiemThatBaiChoNhapThuCong } from "../application/servic
 const maHocKy = z.string().uuid();
 const maMonHoc = z.string().uuid();
 const diemSo = z.coerce.number().min(0).max(10);
-const trongSo = z.coerce.number().positive().max(100);
+const trongSo = z.coerce.number().min(0).max(100);
 
 const dongImport = z.record(z.unknown());
 
@@ -72,8 +72,7 @@ export const luocDoCauHinhTrongSo = z.object({
       .array(
         z.object({
           tenThanhPhan: z.string().trim().optional().nullable(),
-          trongSo: trongSo.optional().nullable(),
-          diem: diemSo.optional().nullable()
+          trongSo: trongSo.optional().nullable()
         })
       )
       .optional()
@@ -90,6 +89,16 @@ export const luocDoDuPhongGpa = z.object({
     target_gpa: z.coerce.number().optional().nullable(),
     gpaMucTieu: z.coerce.number().optional().nullable(),
     GPA_MUC_TIEU: z.coerce.number().optional().nullable()
+  }),
+  params: z.object({}),
+  query: z.object({})
+});
+
+export const luocDoGoiYHocTapBangAi = z.object({
+  body: z.object({
+    maHocKy,
+    targetGpa: z.coerce.number().min(0).max(4).optional().nullable(),
+    focus: z.string().trim().max(500).optional().nullable()
   }),
   params: z.object({}),
   query: z.object({})
@@ -135,6 +144,9 @@ type DuLieuCauHinhTrongSo = {
 
 type DuLieuDuPhongGpa = {
   body: z.infer<typeof luocDoDuPhongGpa>["body"];
+};
+type DuLieuGoiYHocTapBangAi = {
+  body: z.infer<typeof luocDoGoiYHocTapBangAi>["body"];
 };
 
 type DuLieuPreviewImport = {
@@ -201,6 +213,19 @@ export class BoDieuKhienDiemSo {
       actorId,
       maHocKy: body.maHocKy,
       targetGpa: body.targetGpa ?? body.target_gpa ?? body.gpaMucTieu ?? body.GPA_MUC_TIEU
+    });
+
+    res.status(200).json(thanhCong(ketQua));
+  });
+
+  goiYHocTapBangAi = xuLyBatDongBo(async (req: Request, res: Response) => {
+    const actorId = this.layActorId(req);
+    const { body } = req.duLieuDaXacThuc as DuLieuGoiYHocTapBangAi;
+    const ketQua = await this.boPhuThuoc.xuLyLayGoiYHocTapBangAi.thucThi({
+      actorId,
+      maHocKy: body.maHocKy,
+      targetGpa: body.targetGpa,
+      focus: body.focus
     });
 
     res.status(200).json(thanhCong(ketQua));

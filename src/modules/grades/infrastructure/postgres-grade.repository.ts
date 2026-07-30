@@ -126,10 +126,11 @@ const cauTruyVanMonHocCoSo = `
     hk.ten_hoc_ky AS "tenHocKy",
     hk.ngay_bat_dau::text AS "ngayBatDau",
     hk.ngay_ket_thuc::text AS "ngayKetThuc",
-    hsv.ma_truong_code AS "maTruongCode"
+    th.ma_truong_code AS "maTruongCode"
   FROM mon_hoc mh
   INNER JOIN hoc_ky hk ON hk.ma_hoc_ky = mh.ma_hoc_ky
   LEFT JOIN ho_so_sinh_vien hsv ON hsv.ma_nguoi_dung = hk.ma_nguoi_dung
+  LEFT JOIN truong_hoc th ON th.ma_truong = hsv.ma_truong
 `;
 
 const cauTruyVanThanhPhanCoSo = `
@@ -211,11 +212,12 @@ export class KhoDiemSoPostgres implements KhoDiemSo {
           hk.ten_hoc_ky AS "tenHocKy",
           hk.ngay_bat_dau::text AS "ngayBatDau",
           hk.ngay_ket_thuc::text AS "ngayKetThuc",
-          hsv.ma_truong_code AS "maTruongCode"
+          th.ma_truong_code AS "maTruongCode"
         FROM thanh_phan_diem tpd
         INNER JOIN mon_hoc mh ON mh.ma_mon_hoc = tpd.ma_mon_hoc
         INNER JOIN hoc_ky hk ON hk.ma_hoc_ky = mh.ma_hoc_ky
         LEFT JOIN ho_so_sinh_vien hsv ON hsv.ma_nguoi_dung = hk.ma_nguoi_dung
+        LEFT JOIN truong_hoc th ON th.ma_truong = hsv.ma_truong
         WHERE tpd.ma_thanh_phan::text = $1
           AND hk.ma_nguoi_dung = $2
         LIMIT 1
@@ -365,16 +367,38 @@ export class KhoDiemSoPostgres implements KhoDiemSo {
     boThucThi: BoThucThiTruyVan = this.coSoDuLieu
   ) {
     const tenThanhPhanGiuLai = cauHinh.map((item) => item.tenThanhPhan.trim().toLowerCase());
+    const thanhPhanHienTai = await this.lietKeThanhPhanTheoMon(maMonHoc, boThucThi);
+    const thanhPhanTheoTen = new Map(
+      thanhPhanHienTai.map((item) => [item.tenThanhPhan.trim().toLowerCase(), item] as const)
+    );
 
     for (const item of cauHinh) {
-      const hienTai = await this.timThanhPhanTheoTen(maMonHoc, item.tenThanhPhan, boThucThi);
+      const hienTai = thanhPhanTheoTen.get(item.tenThanhPhan.trim().toLowerCase());
+
+      if (!hienTai) {
+        continue;
+      }
+
+      await this.upsertThanhPhan(
+        {
+          maMonHoc,
+          tenThanhPhan: item.tenThanhPhan,
+          trongSo: 0,
+          diem: hienTai.diem
+        },
+        boThucThi
+      );
+    }
+
+    for (const item of cauHinh) {
+      const hienTai = thanhPhanTheoTen.get(item.tenThanhPhan.trim().toLowerCase());
 
       await this.upsertThanhPhan(
         {
           maMonHoc,
           tenThanhPhan: item.tenThanhPhan,
           trongSo: item.trongSo,
-          diem: item.diem === undefined ? hienTai?.diem ?? null : item.diem
+          diem: hienTai?.diem ?? null
         },
         boThucThi
       );
@@ -395,6 +419,35 @@ export class KhoDiemSoPostgres implements KhoDiemSo {
   }
 
   async upsertThanhPhan(data: DuLieuUpsertThanhPhanDiem, boThucThi: BoThucThiTruyVan = this.coSoDuLieu) {
+    const tenThanhPhan = data.tenThanhPhan.trim();
+    const capNhat = await boThucThi.truyVan<DongThanhPhan>(
+      `
+        UPDATE thanh_phan_diem
+        SET
+          ten_thanh_phan = $2,
+          trong_so = $3,
+          diem = COALESCE($4, diem),
+          thoi_gian_cap_nhat = NOW()
+        WHERE ma_mon_hoc = $1
+          AND LOWER(TRIM(ten_thanh_phan)) = LOWER(TRIM($2))
+        RETURNING
+          ma_thanh_phan AS "maThanhPhan",
+          ma_mon_hoc AS "maMonHoc",
+          ten_thanh_phan AS "tenThanhPhan",
+          trong_so AS "trongSo",
+          diem AS "diem",
+          thoi_gian_tao AS "createdAt",
+          thoi_gian_cap_nhat AS "updatedAt"
+      `,
+      [data.maMonHoc, tenThanhPhan, data.trongSo, data.diem]
+    );
+
+    const thanhPhanDaCapNhat = capNhat.rows[0];
+
+    if (thanhPhanDaCapNhat) {
+      return anhXaThanhPhan(thanhPhanDaCapNhat);
+    }
+
     const ketQua = await boThucThi.truyVan<DongThanhPhan>(
       `
         INSERT INTO thanh_phan_diem (
@@ -406,11 +459,6 @@ export class KhoDiemSoPostgres implements KhoDiemSo {
           thoi_gian_cap_nhat
         )
         VALUES ($1, $2, $3, $4, NOW(), NOW())
-        ON CONFLICT (ma_mon_hoc, ten_thanh_phan)
-        DO UPDATE SET
-          trong_so = EXCLUDED.trong_so,
-          diem = EXCLUDED.diem,
-          thoi_gian_cap_nhat = NOW()
         RETURNING
           ma_thanh_phan AS "maThanhPhan",
           ma_mon_hoc AS "maMonHoc",
@@ -420,7 +468,7 @@ export class KhoDiemSoPostgres implements KhoDiemSo {
           thoi_gian_tao AS "createdAt",
           thoi_gian_cap_nhat AS "updatedAt"
       `,
-      [data.maMonHoc, data.tenThanhPhan, data.trongSo, data.diem]
+      [data.maMonHoc, tenThanhPhan, data.trongSo, data.diem]
     );
 
     const thanhPhan = ketQua.rows[0];
@@ -435,8 +483,9 @@ export class KhoDiemSoPostgres implements KhoDiemSo {
   async layMaTruongCodeSinhVien(actorId: string, boThucThi: BoThucThiTruyVan = this.coSoDuLieu) {
     const ketQua = await boThucThi.truyVan<{ maTruongCode: string | null }>(
       `
-        SELECT hsv.ma_truong_code AS "maTruongCode"
+        SELECT th.ma_truong_code AS "maTruongCode"
         FROM ho_so_sinh_vien hsv
+        LEFT JOIN truong_hoc th ON th.ma_truong = hsv.ma_truong
         WHERE hsv.ma_nguoi_dung = $1
         LIMIT 1
       `,
@@ -450,14 +499,15 @@ export class KhoDiemSoPostgres implements KhoDiemSo {
     const ketQua = await boThucThi.truyVan<DongMucQuyDoiDiem>(
       `
         SELECT
-          ct.diem_tu AS "diemTu",
-          ct.diem_den AS "diemDen",
-          td.diem_chu AS "diemChu",
-          td.he_4 AS "he4"
+          ct.diem_thap_nhat AS "diemTu",
+          ct.diem_cao_nhat AS "diemDen",
+          ct.diem_chu AS "diemChu",
+          ct.diem_he_4 AS "he4"
         FROM thang_diem td
+        INNER JOIN truong_hoc th ON th.ma_truong = td.ma_truong
         INNER JOIN chi_tiet_thang_diem ct ON ct.ma_thang_diem = td.ma_thang_diem
-        WHERE td.ma_truong_code = $1
-        ORDER BY ct.diem_tu ASC
+        WHERE th.ma_truong_code = $1
+        ORDER BY ct.diem_thap_nhat ASC
       `,
       [maTruongCode]
     );
@@ -469,12 +519,13 @@ export class KhoDiemSoPostgres implements KhoDiemSo {
     const ketQua = await boThucThi.truyVan<DongQuyCheHocLuc>(
       `
         SELECT
-          qchl.xep_loai AS "xepLoai",
-          qchl.gpa_tu AS "gpaTu",
-          qchl.gpa_den AS "gpaDen"
+          qchl.ten_xep_loai AS "xepLoai",
+          qchl.gpa_toi_thieu AS "gpaTu",
+          qchl.gpa_toi_da AS "gpaDen"
         FROM quy_che_hoc_luc qchl
-        WHERE qchl.ma_truong_code = $1
-        ORDER BY qchl.gpa_tu ASC
+        INNER JOIN truong_hoc th ON th.ma_truong = qchl.ma_truong
+        WHERE th.ma_truong_code = $1
+        ORDER BY qchl.gpa_toi_thieu ASC
       `,
       [maTruongCode]
     );

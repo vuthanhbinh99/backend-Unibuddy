@@ -69,26 +69,20 @@ export class XuLyXemBangDiem {
       }
 
       const maTruongCode = await this.deps.khoDiemSo.layMaTruongCodeSinhVien(command.actorId);
+      const [thangDiem, quyCheHocLuc] = maTruongCode
+        ? await Promise.all([
+            this.deps.khoDiemSo.layThangDiem(maTruongCode),
+            this.deps.khoDiemSo.layQuyCheHocLuc(maTruongCode)
+          ])
+        : [[], []];
 
-      if (!maTruongCode) {
-        await this.ghiCanhBaoThieuCauHinh(command, "GRADE_TRANSCRIPT_SCHOOL_PROFILE_MISSING", {
-          reasonCode: "SCHOOL_PROFILE_MISSING"
-        });
-        throw LoiUngDung.khongTheXuLy("Không thể tính GPA do hệ thống chưa xác định được trường học của sinh viên");
-      }
-
-      const [thangDiem, quyCheHocLuc] = await Promise.all([
-        this.deps.khoDiemSo.layThangDiem(maTruongCode),
-        this.deps.khoDiemSo.layQuyCheHocLuc(maTruongCode)
-      ]);
-
-      if (thangDiem.length === 0 || quyCheHocLuc.length === 0) {
+      if (!maTruongCode || thangDiem.length === 0 || quyCheHocLuc.length === 0) {
         await this.ghiCanhBaoThieuCauHinh(command, "GRADE_TRANSCRIPT_ACADEMIC_RULES_MISSING", {
           maTruongCode,
+          hasSchoolProfile: Boolean(maTruongCode),
           hasScoreScale: thangDiem.length > 0,
           hasStandingRules: quyCheHocLuc.length > 0
         });
-        throw LoiUngDung.khongTheXuLy("Hệ thống chưa thiết lập cấu hình thang điểm cho trường học này");
       }
 
       const thanhPhanTheoMon = new Map(
@@ -98,20 +92,35 @@ export class XuLyXemBangDiem {
       );
       const bangDiem = lapBangDiemTuDuLieu(monHoc, thanhPhanTheoMon, thangDiem, quyCheHocLuc);
 
-      await this.deps.khoNhatKyHeThong.tao({
-        actorId: command.actorId,
-        level: "INFO",
-        action: "GRADE_TRANSCRIPT_VIEWED",
-        tableName: "thanh_phan_diem",
-        message: "Sinh viên xem bảng điểm và truy xuất GPA thành công",
-        metadata: {
-          maHocKy: command.maHocKy ?? null,
-          totalCourses: bangDiem.items.length,
-          gpa: bangDiem.tongKet.gpaTichLuy,
-          maTruongCode,
-          ruleCodes: ["BR-EDU-03", "BR-EDU-04"]
-        }
-      });
+      try {
+        await this.deps.khoNhatKyHeThong.tao({
+          actorId: command.actorId,
+          level: "INFO",
+          action: "GRADE_TRANSCRIPT_VIEWED",
+          tableName: "thanh_phan_diem",
+          message: "Sinh viên xem bảng điểm và truy xuất GPA thành công",
+          metadata: {
+            maHocKy: command.maHocKy ?? null,
+            totalCourses: bangDiem.items.length,
+            gpa: bangDiem.tongKet.gpaTichLuy,
+            maTruongCode,
+            ruleCodes: ["BR-EDU-03", "BR-EDU-04"]
+          }
+        });
+      } catch (auditError) {
+        await this.deps.dichVuGhiLogLoiDiemSo.ghiCanhBao({
+          actorId: command.actorId,
+          action: "GRADE_TRANSCRIPT_AUDIT_LOG_FAILED",
+          tableName: "thanh_phan_diem",
+          message: "Không thể ghi audit khi xem bảng điểm",
+          metadata: {
+            maHocKy: command.maHocKy ?? null,
+            totalCourses: bangDiem.items.length,
+            maTruongCode,
+            auditErrorMessage: auditError instanceof Error ? auditError.message : String(auditError)
+          }
+        });
+      }
 
       return {
         message: "Tải bảng điểm thành công",
