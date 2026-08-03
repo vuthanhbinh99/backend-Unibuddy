@@ -8,11 +8,17 @@ import { cauHinh } from "./shared/config/env.js";
 import { xuLyLoi } from "./shared/middleware/error-handler.js";
 import { xuLyKhongTimThay } from "./shared/middleware/not-found-handler.js";
 import { taoBoiCanhYeuCau } from "./shared/middleware/request-context.js";
+import { xayDungTuyenDuongSwaggerUi } from "./shared/openapi/swagger-ui.routes.js";
 
 export const taoUngDung = () => {
   const ungDung = express();
 
   ungDung.disable("x-powered-by");
+
+  if (cauHinh.nodeEnv !== "production") {
+    ungDung.use("/api-docs", xayDungTuyenDuongSwaggerUi());
+  }
+
   ungDung.use(helmet());
   ungDung.use(compression());
   ungDung.use(cors({ origin: cauHinh.corsOrigins }));
