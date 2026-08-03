@@ -41,7 +41,7 @@ const PHAN_HOI_AI_SCHEMA = z.object({
       })
     )
     .min(1)
-    .max(30),
+    .max(100),
   notes: z.array(z.string().min(1)).max(6).default([])
 });
 
@@ -112,7 +112,7 @@ export class XuLyTaoFlashcardTuFile {
     }
 
     const vanBanRutGon = sourceText.slice(0, DO_DAI_VAN_BAN_TOI_DA);
-    const desiredCount = Math.min(Math.max(command.desiredCount ?? 8, 3), 30);
+    const desiredCount = Math.min(Math.max(command.desiredCount ?? 8, 3), 100);
 
     try {
       const prompt = await this.deps.dichVuPromptAi.lay("flashcard-quiz-generate.prompt.md");
