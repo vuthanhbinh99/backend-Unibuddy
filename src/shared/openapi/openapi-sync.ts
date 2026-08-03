@@ -11,6 +11,15 @@ type MoTaTuyenDuong = {
   publicRoute: boolean;
 };
 
+type KhoiTuyenDuongThieu = {
+  path: string;
+  content: string;
+  isNewPath: boolean;
+  insertAt: number;
+};
+
+const CAC_PHUONG_THUC_HTTP = new Set(["get", "post", "put", "delete", "patch", "head", "options", "trace"]);
+
 const thuMucModule = path.dirname(fileURLToPath(import.meta.url));
 const thuMucBackend = path.resolve(thuMucModule, "../../../");
 const tepOpenApi = path.join(thuMucBackend, "openapi.yaml");
@@ -656,7 +665,7 @@ function layCacTuyenDuongThieu(noiDung: string, dsTuyenDuong: MoTaTuyenDuong[]) 
     groupByPath.set(tuyenDuong.path, list);
   }
 
-  const cacKhoiTuyenDuong: { path: string; content: string; isNewPath: boolean }[] = [];
+  const cacKhoiTuyenDuong: KhoiTuyenDuongThieu[] = [];
 
   for (const [duongDan, dsTheoDuongDan] of groupByPath.entries()) {
     const pathHeader = `  ${duongDan}:`;
@@ -666,7 +675,8 @@ function layCacTuyenDuongThieu(noiDung: string, dsTuyenDuong: MoTaTuyenDuong[]) 
       cacKhoiTuyenDuong.push({
         path: duongDan,
         content: [`  ${duongDan}:`, ...dsTheoDuongDan.map(taoKhoiPhuongThuc)].join("\n"),
-        isNewPath: true
+        isNewPath: true,
+        insertAt: layViTriMucTieu(noiDung.split("\ncomponents:")[0])
       });
       continue;
     }
@@ -685,12 +695,90 @@ function layCacTuyenDuongThieu(noiDung: string, dsTuyenDuong: MoTaTuyenDuong[]) 
       cacKhoiTuyenDuong.push({
         path: duongDan,
         content: cacPhanThieu.join("\n"),
-        isNewPath: false
+        isNewPath: false,
+        insertAt: ketThucPath
       });
     }
   }
 
   return cacKhoiTuyenDuong;
+}
+
+function donDepPhuongThucSaiHoacTrung(noiDung: string, dsTuyenDuong: MoTaTuyenDuong[]) {
+  const phuongThucTheoPath = new Map<string, Set<string>>();
+
+  for (const tuyenDuong of dsTuyenDuong) {
+    const phuongThuc = phuongThucTheoPath.get(tuyenDuong.path) ?? new Set<string>();
+    phuongThuc.add(tuyenDuong.method);
+    phuongThucTheoPath.set(tuyenDuong.path, phuongThuc);
+  }
+
+  const daGiu = new Set<string>();
+  const dong = noiDung.split("\n");
+  const ketQua: string[] = [];
+  let pathHienTai: string | null = null;
+  let index = 0;
+
+  while (index < dong.length) {
+    const line = dong[index];
+    const pathMatch = line.match(/^  (\/.*):\s*$/);
+
+    if (pathMatch) {
+      pathHienTai = pathMatch[1];
+      ketQua.push(line);
+      index += 1;
+      continue;
+    }
+
+    if (line === "components:") {
+      pathHienTai = null;
+    }
+
+    const methodMatch = line.match(/^    ([a-z]+):\s*$/);
+    const method = methodMatch?.[1];
+
+    if (pathHienTai && method && CAC_PHUONG_THUC_HTTP.has(method) && phuongThucTheoPath.has(pathHienTai)) {
+      const key = `${pathHienTai} ${method}`;
+      const hopLe = phuongThucTheoPath.get(pathHienTai)?.has(method) === true;
+      const biTrung = daGiu.has(key);
+
+      if (!hopLe || biTrung) {
+        index += 1;
+
+        while (
+          index < dong.length &&
+          !dong[index].match(/^    (get|post|put|delete|patch|head|options|trace):\s*$/) &&
+          !dong[index].match(/^  \//) &&
+          dong[index] !== "components:"
+        ) {
+          index += 1;
+        }
+
+        continue;
+      }
+
+      daGiu.add(key);
+    }
+
+    ketQua.push(line);
+    index += 1;
+  }
+
+  return ketQua.join("\n");
+}
+
+function chenCacTuyenDuongThieu(noiDung: string, cacTuyenDuongThieu: KhoiTuyenDuongThieu[]) {
+  let noiDungMoi = noiDung;
+
+  for (const item of [...cacTuyenDuongThieu].sort((a, b) => b.insertAt - a.insertAt)) {
+    const truoc = noiDungMoi.slice(0, item.insertAt);
+    const sau = noiDungMoi.slice(item.insertAt);
+    const dauChen = truoc.endsWith("\n") ? "" : "\n";
+    const cuoiChen = item.content.endsWith("\n") || sau.startsWith("\n") ? "" : "\n";
+    noiDungMoi = `${truoc}${dauChen}${item.content}${cuoiChen}${sau}`;
+  }
+
+  return noiDungMoi;
 }
 
 export async function dongBoOpenApi() {
@@ -699,19 +787,15 @@ export async function dongBoOpenApi() {
     taoDanhSachTuyenDuong()
   ]);
 
-  const phanTieuDe = noiDungOpenApi.split("\ncomponents:")[0];
-  const viTriDich = layViTriMucTieu(phanTieuDe);
-  const cacTuyenDuongThieu = layCacTuyenDuongThieu(noiDungOpenApi, dsTuyenDuong);
+  const noiDungDaDonDep = donDepPhuongThucSaiHoacTrung(noiDungOpenApi, dsTuyenDuong);
+  const cacTuyenDuongThieu = layCacTuyenDuongThieu(noiDungDaDonDep, dsTuyenDuong);
 
-  if (cacTuyenDuongThieu.length === 0) {
+  if (cacTuyenDuongThieu.length === 0 && noiDungDaDonDep === noiDungOpenApi) {
     return false;
   }
 
-  const khoiThemMoi = cacTuyenDuongThieu
-    .map((item) => item.content)
-    .join("\n");
-
-  const noiDungMoi = `${noiDungOpenApi.slice(0, viTriDich)}${khoiThemMoi}\n${noiDungOpenApi.slice(viTriDich)}`;
+  const noiDungMoi =
+    cacTuyenDuongThieu.length > 0 ? chenCacTuyenDuongThieu(noiDungDaDonDep, cacTuyenDuongThieu) : noiDungDaDonDep;
 
   await writeFile(tepOpenApi, noiDungMoi, "utf8");
   return true;
