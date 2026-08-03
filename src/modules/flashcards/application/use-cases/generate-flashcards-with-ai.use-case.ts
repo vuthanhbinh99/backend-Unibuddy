@@ -25,7 +25,7 @@ const PHAN_HOI_AI_SCHEMA = z.object({
       })
     )
     .min(1)
-    .max(30),
+    .max(100),
   notes: z.array(z.string().min(1)).max(6).default([])
 });
 
@@ -56,7 +56,7 @@ export class XuLyTaoFlashcardBangAi {
       throw LoiUngDung.yeuCauSai("Nội dung quá dài, vui lòng rút gọn dưới 12000 ký tự");
     }
 
-    const desiredCount = Math.min(Math.max(command.desiredCount ?? 8, 3), 30);
+    const desiredCount = Math.min(Math.max(command.desiredCount ?? 8, 3), 100);
     const bo = await this.deps.khoFlashcard.timBoCuaSinhVien(command.maBo, command.actorId);
 
     if (!bo) {
