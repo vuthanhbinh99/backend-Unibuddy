@@ -69,7 +69,7 @@ export class XuLyDangNhapGoogle {
         );
       });
 
-      throw LoiUngDung.biKhoa("Account has been biKhoa");
+      throw LoiUngDung.biKhoa("Tài khoản đã bị khóa. Vui lòng liên hệ quản trị viên để được hỗ trợ.");
     }
 
     if (user.status === "CHO_DOI_MAT_KHAU") {
