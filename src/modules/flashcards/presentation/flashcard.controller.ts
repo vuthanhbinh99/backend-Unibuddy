@@ -74,7 +74,7 @@ export const luocDoTaoTheFlashcard = z.object({
 export const luocDoTaoTheFlashcardBangAi = z.object({
   body: z.object({
     sourceText: z.string().trim().min(30).max(12000),
-    desiredCount: z.coerce.number().int().min(3).max(30).optional().nullable()
+    desiredCount: z.coerce.number().int().min(3).max(100).optional().nullable()
   }),
   params: z.object({ maBo: maTaiNguyen }),
   query: z.object({})
